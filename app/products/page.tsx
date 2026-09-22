@@ -7,7 +7,7 @@ import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { ProductTable } from "@/components/products/product-table";
 import { AddProductForm } from "@/components/products/add-product-form";
- import { Button } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { products as initialProducts } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
 import { ExportProductsDialog } from "@/components/products/export-products-dialog";

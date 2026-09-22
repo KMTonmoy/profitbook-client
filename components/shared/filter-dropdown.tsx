@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
@@ -40,18 +41,20 @@ export function FilterDropdown({
         }
       />
       <DropdownMenuContent align="end" className="w-52">
-        <DropdownMenuLabel>{label}</DropdownMenuLabel>
-        <DropdownMenuSeparator />
-        {options.map((o) => (
-          <DropdownMenuItem
-            key={o.value}
-            onClick={() => onChange?.(o.value)}
-            className="flex items-center justify-between"
-          >
-            {o.label}
-            {value === o.value && <Check className="h-3.5 w-3.5" />}
-          </DropdownMenuItem>
-        ))}
+        <DropdownMenuGroup>
+          <DropdownMenuLabel>{label}</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          {options.map((o) => (
+            <DropdownMenuItem
+              key={o.value}
+              onClick={() => onChange?.(o.value)}
+              className="flex items-center justify-between"
+            >
+              {o.label}
+              {value === o.value && <Check className="h-3.5 w-3.5" />}
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuGroup>
       </DropdownMenuContent>
     </DropdownMenu>
   );

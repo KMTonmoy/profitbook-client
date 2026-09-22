@@ -1,45 +1,51 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, Eye, Pencil, Trash2 } from "lucide-react";
+import { Eye, Pencil, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { SearchInput } from "@/components/shared/search-input";
 import { FilterDropdown } from "@/components/shared/filter-dropdown";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { InvoicePreview } from "@/components/sales/invoice-preview";
-import { sales } from "@/lib/mock-data";
 import type { Sale } from "@/lib/types";
 import { formatCurrency, formatDate } from "@/lib/format";
 
-export function SalesTable() {
+interface Props {
+  sales: Sale[];
+  onDelete: (id: string) => void;
+  onView: (sale: Sale) => void;
+  onEdit: (sale: Sale) => void;
+}
+
+export function SalesTable({ sales, onDelete, onView, onEdit }: Props) {
   const [search, setSearch] = React.useState("");
   const [status, setStatus] = React.useState("all");
-  const [viewSale, setViewSale] = React.useState<Sale | null>(null);
   const [deleteSale, setDeleteSale] = React.useState<Sale | null>(null);
 
-  const filtered = sales.filter((s) => {
-    if (
-      search &&
-      !`${s.invoiceNumber} ${s.customerName}`
-        .toLowerCase()
-        .includes(search.toLowerCase())
-    )
-      return false;
-    if (status !== "all" && s.status !== status) return false;
-    return true;
-  });
+  const filtered = React.useMemo(
+    () =>
+      sales.filter((s) => {
+        if (
+          search &&
+          !`${s.invoiceNumber} ${s.customerName}`
+            .toLowerCase()
+            .includes(search.toLowerCase())
+        )
+          return false;
+        if (status !== "all" && s.status !== status) return false;
+        return true;
+      }),
+    [sales, search, status]
+  );
 
   const columns: Column<Sale>[] = [
     {
@@ -53,6 +59,14 @@ export function SalesTable() {
       header: "Date",
       cell: (s) => (
         <span className="text-muted-foreground">{formatDate(s.date)}</span>
+      ),
+    },
+    {
+      key: "items",
+      header: "Items",
+      align: "center",
+      cell: (s) => (
+        <span className="text-muted-foreground">{s.items.length}</span>
       ),
     },
     {
@@ -106,36 +120,61 @@ export function SalesTable() {
     },
     {
       key: "actions",
-      header: "",
+      header: "Actions",
       align: "right",
       cell: (s) => (
-        <DropdownMenu>
-          <DropdownMenuTrigger
-            render={
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <MoreHorizontal className="h-4 w-4" />
-              </Button>
-            }
-          />
-          <DropdownMenuContent align="end">
-            <DropdownMenuItem onClick={() => setViewSale(s)}>
-              <Eye className="mr-2 h-4 w-4" />
-              View invoice
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Pencil className="mr-2 h-4 w-4" />
-              Edit
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem
-              className="text-destructive focus:text-destructive"
-              onClick={() => setDeleteSale(s)}
-            >
-              <Trash2 className="mr-2 h-4 w-4" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
+        <div className="flex items-center justify-end gap-1">
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => onView(s)}
+                  aria-label="View invoice"
+                >
+                  <Eye className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">View invoice</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                  onClick={() => onEdit(s)}
+                  aria-label="Edit sale"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">Edit</TooltipContent>
+          </Tooltip>
+
+          <Tooltip>
+            <TooltipTrigger
+              render={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  onClick={() => setDeleteSale(s)}
+                  aria-label="Delete sale"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              }
+            />
+            <TooltipContent side="top">Delete</TooltipContent>
+          </Tooltip>
+        </div>
       ),
     },
   ];
@@ -166,25 +205,32 @@ export function SalesTable() {
             columns={columns}
             data={filtered}
             keyExtractor={(s) => s.id}
+            emptyTitle="No sales yet"
+            emptyDescription="Click Add Sale to create your first invoice."
           />
         </CardContent>
       </Card>
 
-      <InvoicePreview
-        open={!!viewSale}
-        onOpenChange={(o) => !o && setViewSale(null)}
-        sale={viewSale}
-      />
-
       <ConfirmDialog
         open={!!deleteSale}
         onOpenChange={(o) => !o && setDeleteSale(null)}
-        title="Delete sale?"
-        description={`Invoice ${deleteSale?.invoiceNumber} will be permanently removed.`}
+        title="Delete this sale?"
+        description={
+          deleteSale
+            ? `Invoice ${deleteSale.invoiceNumber} · ${deleteSale.customerName} · ${formatCurrency(
+                deleteSale.total
+              )}. Stock will be restored automatically.`
+            : ""
+        }
+        confirmLabel="Delete sale"
+        cancelLabel="Cancel"
         onConfirm={() => {
-          toast.success("Sale deleted", {
-            description: deleteSale?.invoiceNumber,
-          });
+          if (deleteSale) {
+            onDelete(deleteSale.id);
+            toast.success("Sale deleted", {
+              description: deleteSale.invoiceNumber,
+            });
+          }
           setDeleteSale(null);
         }}
       />

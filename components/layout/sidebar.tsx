@@ -8,6 +8,7 @@ import {
   Warehouse,
   ShoppingCart,
   Receipt,
+  Truck,
   Users,
   CreditCard,
   Wallet,
@@ -19,6 +20,7 @@ import {
   Moon,
   Sun,
   ChevronsUpDown,
+  Tags,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 
@@ -46,6 +48,7 @@ const navGroups = [
     label: "Inventory",
     items: [
       { label: "Products", href: "/products", icon: Package },
+      { label: "Categories", href: "/categories", icon: Tags },
       { label: "Stock", href: "/stock", icon: Warehouse },
       { label: "Purchases", href: "/purchases", icon: ShoppingCart },
     ],
@@ -54,6 +57,7 @@ const navGroups = [
     label: "Sales & CRM",
     items: [
       { label: "Sales", href: "/sales", icon: Receipt },
+      { label: "Suppliers", href: "/suppliers", icon: Truck },
       { label: "Customers", href: "/customers", icon: Users },
       { label: "Due / Credit", href: "/due", icon: CreditCard },
     ],
@@ -109,7 +113,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                         "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
                       )}
                     >
                       <Icon
@@ -117,7 +121,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                           "h-4 w-4 shrink-0 transition-colors",
                           active
                             ? "text-primary"
-                            : "text-muted-foreground group-hover:text-foreground"
+                            : "text-muted-foreground group-hover:text-foreground",
                         )}
                         strokeWidth={2.25}
                       />

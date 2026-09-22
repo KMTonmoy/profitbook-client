@@ -136,7 +136,7 @@ export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
       onOpenChange={onOpenChange}
       title="Add Product"
       description="Create a new product in your catalog"
-      size="lg"
+      size="xl"
       footer={
         <>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
