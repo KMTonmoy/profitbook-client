@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Moon, Sun, AlignJustify } from "lucide-react";
+import { Check, Moon, Sun, AlignJustify, Languages } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -14,12 +14,14 @@ import { Textarea } from "@/components/ui/textarea";
 import { businessSettings } from "@/lib/mock-data";
 import { useMounted } from "@/hooks/use-mounted";
 import { useCompactMode } from "@/hooks/use-compact-mode";
+import { useLanguage, type Language } from "@/hooks/use-language";
 import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
   const { setTheme, resolvedTheme } = useTheme();
   const mounted = useMounted();
   const { compact, setCompact } = useCompactMode();
+  const { lang, setLanguage } = useLanguage();
 
   const applyTheme = (next: "light" | "dark" | "system") => {
     setTheme(next);
@@ -30,6 +32,15 @@ export default function SettingsPage() {
     const next = !compact;
     setCompact(next);
     toast.success(next ? "Compact mode on" : "Compact mode off");
+  };
+
+  const applyLanguage = (next: Language) => {
+    setLanguage(next);
+    toast.success(
+      next === "bn"
+        ? "ভাষা পরিবর্তন হয়েছে: বাংলা"
+        : "Language changed: English",
+    );
   };
 
   const isLight = mounted && resolvedTheme === "light";
@@ -114,6 +125,31 @@ export default function SettingsPage() {
               icon={AlignJustify}
               title="Compact Mode"
               description="Tighter spacing and padding"
+            />
+          </CardContent>
+        </Card>
+
+        <Card className="shadow-sm lg:col-span-3">
+          <CardHeader className="pb-3">
+            <CardTitle className="flex items-center gap-2 text-base">
+              <Languages className="h-4 w-4 text-muted-foreground" />
+              Language
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <ThemeCard
+              active={lang === "en"}
+              onClick={() => applyLanguage("en")}
+              icon={() => <span className="text-base font-semibold">EN</span>}
+              title="English"
+              description="Default language"
+            />
+            <ThemeCard
+              active={lang === "bn"}
+              onClick={() => applyLanguage("bn")}
+              icon={() => <span className="text-base font-semibold">বাং</span>}
+              title="বাংলা"
+              description="Translate the entire app to Bangla"
             />
           </CardContent>
         </Card>

@@ -100,19 +100,20 @@ export default function SalesPage() {
         onEdit={openEdit}
       />
 
-      <AddSaleForm
-        open={open}
-        onOpenChange={(o) => {
-          setOpen(o);
-          if (!o) setEditTarget(null);
-        }}
-        customers={customers}
-        products={products}
-        onAddCustomer={handleAddCustomer}
-        onSave={handleCreate}
-        onUpdate={handleUpdate}
-        editTarget={editTarget}
-      />
+ <AddSaleForm
+  key={`${open}-${editTarget?.id ?? "new"}`}
+  open={open}
+  onOpenChange={(o) => {
+    setOpen(o);
+    if (!o) setEditTarget(null);
+  }}
+  customers={customers}
+  products={products}
+  onAddCustomer={handleAddCustomer}
+  onSave={handleCreate}
+  onUpdate={handleUpdate}
+  editTarget={editTarget}
+/>
 
       <InvoicePreview
         open={!!viewSale}

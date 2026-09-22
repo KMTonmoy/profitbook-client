@@ -68,44 +68,32 @@ export function AddExpenseForm({
 }: Props) {
   const isEdit = !!editTarget;
 
-  const form = useForm<ExpenseFormValues>({
-    defaultValues: {
-      category: "other",
-      description: "",
-      amount: 0,
-      paymentMethod: "cash",
-      date: todayISO(),
-    },
-  });
-
-  const [category, setCategory] = React.useState<ExpenseCategory>("other");
-  const [method, setMethod] =
-    React.useState<ExpenseFormValues["paymentMethod"]>("cash");
-
-  React.useEffect(() => {
-    if (!open) return;
-    if (editTarget) {
-      form.reset({
+  const initial: ExpenseFormValues = editTarget
+    ? {
         category: editTarget.category,
         description: editTarget.description,
         amount: editTarget.amount,
         paymentMethod: editTarget.paymentMethod,
         date: editTarget.date,
-      });
-      setCategory(editTarget.category);
-      setMethod(editTarget.paymentMethod);
-    } else {
-      form.reset({
+      }
+    : {
         category: "other",
         description: "",
         amount: 0,
         paymentMethod: "cash",
         date: todayISO(),
-      });
-      setCategory("other");
-      setMethod("cash");
-    }
-  }, [open, editTarget, form]);
+      };
+
+  const form = useForm<ExpenseFormValues>({
+    defaultValues: initial,
+  });
+
+  const [category, setCategory] = React.useState<ExpenseCategory>(
+    initial.category
+  );
+  const [method, setMethod] = React.useState<
+    ExpenseFormValues["paymentMethod"]
+  >(initial.paymentMethod);
 
   const onSubmit = form.handleSubmit((values) => {
     const base: Omit<Expense, "id"> = {

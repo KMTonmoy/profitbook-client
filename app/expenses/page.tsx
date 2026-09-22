@@ -7,10 +7,10 @@ import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { AddExpenseForm } from "@/components/expenses/add-expense-form";
-import { ExportExpensesDialog } from "@/components/expenses/export-expenses-dialog";
 import { Button } from "@/components/ui/button";
 import { expenses as initialExpenses } from "@/lib/mock-data";
 import type { Expense } from "@/lib/types";
+import { ExportExpensesDialog } from "@/components/expenses/export-expenses-dialog";
 
 export default function ExpensesPage() {
   const [open, setOpen] = React.useState(false);

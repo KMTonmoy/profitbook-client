@@ -71,53 +71,34 @@ export function AddSaleForm({
 }: Props) {
   const isEdit = !!editTarget;
 
-  const [customerId, setCustomerId] = React.useState("");
+  const initialCustomerId = editTarget?.customerId ?? "";
+  const initialLines: CartLine[] = editTarget
+    ? editTarget.items.map((it) => ({
+        id: it.id,
+        productId: it.productId,
+        quantity: it.quantity,
+        sellingPrice: it.sellingPrice,
+        discount: it.discount,
+      }))
+    : [];
+  const initialDate = editTarget?.date ?? todayISO();
+  const initialDueDate = editTarget?.dueDate ?? datePlusDays(15);
+  const initialDiscount = editTarget?.discount ?? 0;
+  const initialPaid = editTarget?.paid ?? 0;
+
+  const [customerId, setCustomerId] = React.useState(initialCustomerId);
   const [showNewCustomer, setShowNewCustomer] = React.useState(false);
   const [newCustomer, setNewCustomer] = React.useState({
     name: "",
     phone: "",
     address: "",
   });
-
-  const [lines, setLines] = React.useState<CartLine[]>([]);
-  const [saleDiscount, setSaleDiscount] = React.useState(0);
-  const [paid, setPaid] = React.useState(0);
+  const [lines, setLines] = React.useState<CartLine[]>(initialLines);
+  const [saleDiscount, setSaleDiscount] = React.useState(initialDiscount);
+  const [paid, setPaid] = React.useState(initialPaid);
   const [note, setNote] = React.useState("");
-  const [date, setDate] = React.useState(todayISO());
-  const [dueDate, setDueDate] = React.useState(datePlusDays(15));
-
-  React.useEffect(() => {
-    if (!open) return;
-    if (editTarget) {
-      setCustomerId(editTarget.customerId);
-      setShowNewCustomer(false);
-      setNewCustomer({ name: "", phone: "", address: "" });
-      setLines(
-        editTarget.items.map((it) => ({
-          id: it.id,
-          productId: it.productId,
-          quantity: it.quantity,
-          sellingPrice: it.sellingPrice,
-          discount: it.discount,
-        }))
-      );
-      setSaleDiscount(editTarget.discount);
-      setPaid(editTarget.paid);
-      setNote("");
-      setDate(editTarget.date);
-      setDueDate(editTarget.dueDate ?? datePlusDays(15));
-    } else {
-      setCustomerId("");
-      setShowNewCustomer(false);
-      setNewCustomer({ name: "", phone: "", address: "" });
-      setLines([]);
-      setSaleDiscount(0);
-      setPaid(0);
-      setNote("");
-      setDate(todayISO());
-      setDueDate(datePlusDays(15));
-    }
-  }, [open, editTarget]);
+  const [date, setDate] = React.useState(initialDate);
+  const [dueDate, setDueDate] = React.useState(initialDueDate);
 
   const addLine = () => {
     setLines((prev) => [
@@ -701,9 +682,8 @@ function ProductLineRow({
               </SelectValue>
             </SelectTrigger>
             <SelectContent
-              position="popper"
               sideOffset={6}
-              className="w-[var(--radix-select-trigger-width)] max-h-[340px] p-1"
+              className="w-[var(--anchor-width)] max-h-[340px] p-1"
             >
               {products.map((p) => {
                 const out = p.currentStock <= 0;

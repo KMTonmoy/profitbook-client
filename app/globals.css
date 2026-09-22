@@ -162,13 +162,141 @@
     outline-color: color-mix(in oklab, var(--color-ring) 50%, transparent);
   }
 
+  html {
+    font-family: var(--font-inter), system-ui, -apple-system, "Segoe UI",
+      sans-serif;
+  }
+
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
     -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
     font-feature-settings: "cv11", "ss01";
   }
 }
+
+/* ---------- Google Translate ---------- */
+
+.goog-te-banner-frame,
+.goog-te-banner-frame.skiptranslate,
+iframe.skiptranslate {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-te-gadget {
+  font-size: 0 !important;
+}
+
+.goog-te-gadget span,
+.goog-te-gadget a {
+  display: none !important;
+}
+
+.goog-tooltip,
+.goog-tooltip:hover {
+  display: none !important;
+}
+
+#goog-gt-tt,
+.goog-te-balloon-frame {
+  display: none !important;
+}
+
+.goog-text-highlight {
+  background: none !important;
+  box-shadow: none !important;
+}
+
+#google_translate_element {
+  display: none !important;
+}
+
+/* Strip Google Translate's inline <font> wrappers so our styles win */
+font,
+font * {
+  font-family: inherit !important;
+  font-size: inherit !important;
+  color: inherit !important;
+  background: transparent !important;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  vertical-align: baseline !important;
+}
+
+/* ---------- Bangla font override ---------- */
+
+/* When Google Translate switches to Bangla, replace the ugly serif with a
+   modern Bangla UI font. Uses system Bangla fonts as a no-network fallback. */
+:lang(bn),
+:lang(bn) *,
+html[lang="bn"],
+html[lang="bn"] *,
+html.translated-bn,
+html.translated-bn * {
+  font-family:
+    "Hind Siliguri",
+    "Noto Sans Bengali",
+    "Kalpurush",
+    "SolaimanLipi",
+    "Bangla",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif !important;
+  line-height: 1.7 !important;
+  letter-spacing: 0 !important;
+  font-feature-settings: normal !important;
+  font-variant-ligatures: normal !important;
+}
+
+/* Bangla text inside buttons, inputs, selects, labels */
+html[lang="bn"] button,
+html[lang="bn"] input,
+html[lang="bn"] select,
+html[lang="bn"] textarea,
+html[lang="bn"] label,
+html.translated-bn button,
+html.translated-bn input,
+html.translated-bn select,
+html.translated-bn textarea,
+html.translated-bn label {
+  font-family:
+    "Hind Siliguri",
+    "Noto Sans Bengali",
+    "Kalpurush",
+    "SolaimanLipi",
+    system-ui,
+    sans-serif !important;
+  line-height: 1.5 !important;
+}
+
+/* Headings and larger text need a bit more line height in Bangla */
+html[lang="bn"] h1,
+html[lang="bn"] h2,
+html[lang="bn"] h3,
+html[lang="bn"] h4,
+html[lang="bn"] .text-lg,
+html[lang="bn"] .text-xl,
+html[lang="bn"] .text-2xl,
+html[lang="bn"] .text-3xl,
+html.translated-bn h1,
+html.translated-bn h2,
+html.translated-bn h3,
+html.translated-bn h4,
+html.translated-bn .text-lg,
+html.translated-bn .text-xl,
+html.translated-bn .text-2xl,
+html.translated-bn .text-3xl {
+  line-height: 1.6 !important;
+}
+
+/* ---------- utilities ---------- */
 
 @utility scrollbar-thin {
   &::-webkit-scrollbar {
@@ -191,6 +319,38 @@
     display: none;
   }
 }
+
+/* ---------- compact mode ---------- */
+
+html.compact main {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+html.compact .py-6 {
+  padding-top: 1rem !important;
+  padding-bottom: 1rem !important;
+}
+
+html.compact .gap-6 {
+  gap: 1rem !important;
+}
+
+html.compact .p-5 {
+  padding: 0.875rem !important;
+}
+
+html.compact .p-4 {
+  padding: 0.75rem !important;
+}
+
+html.compact table th,
+html.compact table td {
+  padding-top: 0.4rem !important;
+  padding-bottom: 0.4rem !important;
+}
+
+/* ---------- print ---------- */
 
 @media print {
   .no-print {

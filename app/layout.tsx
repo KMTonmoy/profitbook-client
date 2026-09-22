@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Hind_Siliguri } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
+import { GoogleTranslate } from "@/components/layout/google-translate";
 
 const inter = Inter({
   subsets: ["latin"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const hindSiliguri = Hind_Siliguri({
+  subsets: ["bengali", "latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-bangla",
   display: "swap",
 });
 
@@ -26,9 +34,23 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              try {
+                if (localStorage.getItem('profitbook.compact') === 'true') {
+                  document.documentElement.classList.add('compact');
+                }
+              } catch (e) {}
+            `,
+          }}
+        />
+      </head>
       <body
-        className={`${inter.variable} font-sans min-h-screen bg-background text-foreground`}
+        className={`${inter.variable} ${hindSiliguri.variable} font-sans min-h-screen bg-background text-foreground`}
       >
+        <GoogleTranslate />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
