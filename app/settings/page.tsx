@@ -1,15 +1,40 @@
+"use client";
+
+import * as React from "react";
+import { Check, Moon, Sun, AlignJustify } from "lucide-react";
+import { useTheme } from "next-themes";
+import { toast } from "sonner";
+
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { businessSettings } from "@/lib/mock-data";
-
-export const metadata = { title: "Settings" };
+import { useMounted } from "@/hooks/use-mounted";
+import { useCompactMode } from "@/hooks/use-compact-mode";
+import { cn } from "@/lib/utils";
 
 export default function SettingsPage() {
+  const { setTheme, resolvedTheme } = useTheme();
+  const mounted = useMounted();
+  const { compact, setCompact } = useCompactMode();
+
+  const applyTheme = (next: "light" | "dark" | "system") => {
+    setTheme(next);
+    toast.success(`Theme changed to ${next} mode`);
+  };
+
+  const toggleCompact = () => {
+    const next = !compact;
+    setCompact(next);
+    toast.success(next ? "Compact mode on" : "Compact mode off");
+  };
+
+  const isLight = mounted && resolvedTheme === "light";
+  const isDark = mounted && resolvedTheme === "dark";
+
   return (
     <AppShell title="Settings" subtitle="Business preferences">
       <PageHeader
@@ -18,8 +43,7 @@ export default function SettingsPage() {
       />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-        {/* Business Information */}
-        <Card className="lg:col-span-2 shadow-sm">
+        <Card className="shadow-sm lg:col-span-2">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Business Information</CardTitle>
           </CardHeader>
@@ -45,7 +69,6 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Invoice Settings */}
         <Card className="shadow-sm">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Invoice Settings</CardTitle>
@@ -66,25 +89,83 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Appearance */}
-        <Card className="lg:col-span-3 shadow-sm">
+        <Card className="shadow-sm lg:col-span-3">
           <CardHeader className="pb-3">
             <CardTitle className="text-base">Appearance</CardTitle>
           </CardHeader>
-          <CardContent className="flex flex-wrap items-center gap-3">
-            <Button variant="outline" size="sm" className="h-9">
-              Light Mode
-            </Button>
-            <Button variant="outline" size="sm" className="h-9">
-              Dark Mode
-            </Button>
-            <Button variant="outline" size="sm" className="h-9">
-              Compact Mode
-            </Button>
+          <CardContent className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <ThemeCard
+              active={isLight}
+              onClick={() => applyTheme("light")}
+              icon={Sun}
+              title="Light Mode"
+              description="Bright background, dark text"
+            />
+            <ThemeCard
+              active={isDark}
+              onClick={() => applyTheme("dark")}
+              icon={Moon}
+              title="Dark Mode"
+              description="Dark background, light text"
+            />
+            <ThemeCard
+              active={compact}
+              onClick={toggleCompact}
+              icon={AlignJustify}
+              title="Compact Mode"
+              description="Tighter spacing and padding"
+            />
           </CardContent>
         </Card>
       </div>
     </AppShell>
+  );
+}
+
+function ThemeCard({
+  active,
+  onClick,
+  icon: Icon,
+  title,
+  description,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "group relative flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:border-primary/40 hover:bg-accent/40",
+        active
+          ? "border-primary bg-accent/60 ring-1 ring-primary/30"
+          : "border-border bg-card",
+      )}
+    >
+      <div
+        className={cn(
+          "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg",
+          active
+            ? "bg-primary text-primary-foreground"
+            : "bg-muted text-muted-foreground",
+        )}
+      >
+        <Icon className="h-5 w-5" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-medium">{title}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+      </div>
+      {active && (
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-primary text-primary-foreground">
+          <Check className="h-3 w-3" strokeWidth={3} />
+        </span>
+      )}
+    </button>
   );
 }
 
