@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { categories, suppliers } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
+import type { Product, StockStatus } from "@/lib/types";
 
 export interface AddProductFormValues {
   name: string;
@@ -27,8 +28,7 @@ export interface AddProductFormValues {
   unit: string;
   purchasePrice: number;
   sellingPrice: number;
-  openingStock: number;
-  minimumStock: number;
+  stock: number;
   supplierId?: string;
   description?: string;
 }
@@ -36,31 +36,99 @@ export interface AddProductFormValues {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  onAdd: (product: Product) => void;
 }
 
-export function AddProductForm({ open, onOpenChange }: Props) {
+const UNITS = [
+  { value: "pcs", label: "Pieces (pcs)" },
+  { value: "bag", label: "Bag" },
+  { value: "kg", label: "Kilogram (kg)" },
+  { value: "gram", label: "Gram (g)" },
+  { value: "bottle", label: "Bottle" },
+  { value: "liter", label: "Liter (L)" },
+  { value: "ml", label: "Milliliter (ml)" },
+  { value: "pack", label: "Pack" },
+  { value: "box", label: "Box" },
+  { value: "carton", label: "Carton" },
+  { value: "dozen", label: "Dozen" },
+  { value: "piece", label: "Piece" },
+  { value: "packet", label: "Packet" },
+  { value: "meter", label: "Meter (m)" },
+  { value: "roll", label: "Roll" },
+];
+
+function deriveStatus(stock: number): StockStatus {
+  if (stock <= 0) return "out-of-stock";
+  if (stock <= 10) return "low-stock";
+  return "in-stock";
+}
+
+export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
   const form = useForm<AddProductFormValues>({
     defaultValues: {
       unit: "pcs",
       purchasePrice: 0,
       sellingPrice: 0,
-      openingStock: 0,
-      minimumStock: 0,
+      stock: 0,
     },
   });
+
+  const [categoryId, setCategoryId] = React.useState<string>("");
+  const [supplierId, setSupplierId] = React.useState<string>("");
+  const [unit, setUnit] = React.useState<string>("pcs");
 
   const purchase = Number(form.watch("purchasePrice")) || 0;
   const selling = Number(form.watch("sellingPrice")) || 0;
   const profit = selling - purchase;
   const margin = selling > 0 ? (profit / selling) * 100 : 0;
 
+  React.useEffect(() => {
+    if (open) {
+      form.reset();
+      setCategoryId("");
+      setSupplierId("");
+      setUnit("pcs");
+    }
+  }, [open, form]);
+
   const onSubmit = form.handleSubmit((values) => {
+    if (!categoryId) {
+      toast.error("Please select a category");
+      return;
+    }
+
+    const stock = Number(values.stock) || 0;
+
+    const product: Product = {
+      id: `p-${Date.now()}`,
+      name: values.name.trim(),
+      sku: values.sku.trim(),
+      categoryId,
+      brand: values.brand?.trim() || undefined,
+      unit,
+      purchasePrice: Number(values.purchasePrice) || 0,
+      sellingPrice: Number(values.sellingPrice) || 0,
+      openingStock: stock,
+      currentStock: stock,
+      minimumStock: 10,
+      supplierId: supplierId || undefined,
+      description: values.description?.trim() || undefined,
+      status: deriveStatus(stock),
+      createdAt: new Date().toISOString().slice(0, 10),
+    };
+
+    onAdd(product);
     toast.success("Product added", {
-      description: `${values.name} has been added to your catalog.`,
+      description: `${product.name} has been added to your catalog.`,
     });
     onOpenChange(false);
-    form.reset();
   });
+
+  const onInvalid = () => {
+    toast.error("Please fill all required fields", {
+      description: "Product name, SKU, category, unit and prices are required.",
+    });
+  };
 
   return (
     <FormModal
@@ -82,14 +150,14 @@ export function AddProductForm({ open, onOpenChange }: Props) {
         onSubmit={onSubmit}
         className="grid grid-cols-1 gap-4 sm:grid-cols-2"
       >
-        <Field label="Product Name" className="sm:col-span-2">
+        <Field label="Product Name *" className="sm:col-span-2">
           <Input
             {...form.register("name", { required: true })}
             placeholder="e.g. Rice 25kg"
           />
         </Field>
 
-        <Field label="SKU">
+        <Field label="SKU *">
           <Input
             {...form.register("sku", { required: true })}
             placeholder="RC-25-001"
@@ -100,14 +168,17 @@ export function AddProductForm({ open, onOpenChange }: Props) {
           <Input {...form.register("brand")} placeholder="Optional" />
         </Field>
 
-        <Field label="Category">
+        <Field label="Category *">
           <Select
-            onValueChange={(value) =>
-              form.setValue("categoryId", String(value))
-            }
+            value={categoryId}
+            onValueChange={(value) => setCategoryId(String(value))}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select category" />
+              <SelectValue placeholder="Select category">
+                {categoryId
+                  ? categories.find((c) => c.id === categoryId)?.name
+                  : "Select category"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {categories.map((c) => (
@@ -119,48 +190,73 @@ export function AddProductForm({ open, onOpenChange }: Props) {
           </Select>
         </Field>
 
-        <Field label="Unit">
-          <Input {...form.register("unit")} placeholder="pcs / bag / kg" />
+        <Field label="Unit *">
+          <Select
+            value={unit}
+            onValueChange={(value) => setUnit(String(value))}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Select unit">
+                {UNITS.find((u) => u.value === unit)?.label ?? "Select unit"}
+              </SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              {UNITS.map((u) => (
+                <SelectItem key={u.value} value={u.value}>
+                  {u.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </Field>
 
-        <Field label="Purchase Price (৳)">
+        <Field label="Purchase Price (৳) *">
           <Input
             type="number"
             step="0.01"
-            {...form.register("purchasePrice", { valueAsNumber: true })}
+            min="0"
+            {...form.register("purchasePrice", {
+              required: true,
+              valueAsNumber: true,
+            })}
           />
         </Field>
 
-        <Field label="Selling Price (৳)">
+        <Field label="Selling Price (৳) *">
           <Input
             type="number"
             step="0.01"
-            {...form.register("sellingPrice", { valueAsNumber: true })}
+            min="0"
+            {...form.register("sellingPrice", {
+              required: true,
+              valueAsNumber: true,
+            })}
           />
         </Field>
 
-        <Field label="Opening Stock">
+        <Field label="Stock *">
           <Input
             type="number"
-            {...form.register("openingStock", { valueAsNumber: true })}
-          />
-        </Field>
-
-        <Field label="Minimum Stock">
-          <Input
-            type="number"
-            {...form.register("minimumStock", { valueAsNumber: true })}
+            min="0"
+            placeholder="e.g. 400"
+            {...form.register("stock", {
+              required: true,
+              valueAsNumber: true,
+            })}
           />
         </Field>
 
         <Field label="Supplier">
           <Select
-            onValueChange={(value) =>
-              form.setValue("supplierId", String(value))
-            }
+            value={supplierId}
+            onValueChange={(value) => setSupplierId(String(value))}
           >
             <SelectTrigger>
-              <SelectValue placeholder="Select supplier" />
+              <SelectValue placeholder="Select supplier">
+                {supplierId
+                  ? suppliers.find((s) => s.id === supplierId)?.name
+                  : "Select supplier"}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {suppliers.map((s) => (

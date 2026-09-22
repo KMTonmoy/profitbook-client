@@ -18,11 +18,16 @@ import { FilterDropdown } from "@/components/shared/filter-dropdown";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { products, categories, suppliers } from "@/lib/mock-data";
+import { categories, suppliers } from "@/lib/mock-data";
 import type { Product } from "@/lib/types";
 import { formatCurrency } from "@/lib/format";
 
-export function ProductTable() {
+interface Props {
+  items: Product[];
+  onDelete: (id: string) => void;
+}
+
+export function ProductTable({ items, onDelete }: Props) {
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState<string>("all");
   const [stockFilter, setStockFilter] = React.useState<string>("all");
@@ -30,7 +35,7 @@ export function ProductTable() {
   const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null);
 
   const filtered = React.useMemo(() => {
-    return products.filter((p) => {
+    return items.filter((p) => {
       if (
         search &&
         !`${p.name} ${p.sku}`.toLowerCase().includes(search.toLowerCase())
@@ -42,7 +47,7 @@ export function ProductTable() {
         return false;
       return true;
     });
-  }, [search, category, stockFilter, supplierFilter]);
+  }, [items, search, category, stockFilter, supplierFilter]);
 
   const columns: Column<Product>[] = [
     {
@@ -71,7 +76,7 @@ export function ProductTable() {
               className="h-2 w-2 rounded-full"
               style={{ background: c?.color }}
             />
-            {c?.name}
+            {c?.name ?? "—"}
           </span>
         );
       },
@@ -123,7 +128,7 @@ export function ProductTable() {
       align: "right",
       cell: (p) => {
         const profit = p.sellingPrice - p.purchasePrice;
-        const margin = (profit / p.sellingPrice) * 100;
+        const margin = p.sellingPrice > 0 ? (profit / p.sellingPrice) * 100 : 0;
         return (
           <div className="text-right">
             <p className="text-sm font-medium tabular-nums text-success">
@@ -232,9 +237,12 @@ export function ProductTable() {
         description={`${deleteTarget?.name} will be permanently removed from your catalog.`}
         confirmLabel="Delete product"
         onConfirm={() => {
-          toast.success("Product deleted", {
-            description: deleteTarget?.name,
-          });
+          if (deleteTarget) {
+            onDelete(deleteTarget.id);
+            toast.success("Product deleted", {
+              description: deleteTarget.name,
+            });
+          }
           setDeleteTarget(null);
         }}
       />
