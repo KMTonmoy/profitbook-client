@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -17,26 +17,26 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Moon,
-  Sun,
   ChevronsUpDown,
   Tags,
+  Building2,
+  Phone,
+  Mail,
 } from "lucide-react";
-import { useTheme } from "next-themes";
 
 import { cn } from "@/lib/utils";
-import { useMounted } from "@/hooks/use-mounted";
 import { Logo } from "@/components/layout/logo";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
+  DropdownMenuGroup,
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { businessSettings } from "@/lib/mock-data";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
 import { getInitials } from "@/lib/format";
 
 const navGroups = [
@@ -83,8 +83,21 @@ interface SidebarProps {
 
 export function Sidebar({ onNavigate }: SidebarProps) {
   const pathname = usePathname();
-  const { theme, setTheme } = useTheme();
-  const mounted = useMounted();
+  const router = useRouter();
+  const { settings } = useBusinessSettingsOrDefault();
+
+  const initials = getInitials(settings.businessName || "ProfitBook");
+
+  const handleLogout = () => {
+    try {
+      localStorage.removeItem("profitbook.lang");
+      localStorage.removeItem("profitbook.compact");
+    } catch {
+      // ignore
+    }
+    onNavigate?.();
+    router.push("/");
+  };
 
   return (
     <aside className="flex h-full w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar text-sidebar-foreground">
@@ -113,7 +126,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                         "group relative flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                         active
                           ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                          : "text-muted-foreground hover:bg-muted hover:text-foreground",
+                          : "text-muted-foreground hover:bg-muted hover:text-foreground"
                       )}
                     >
                       <Icon
@@ -121,7 +134,7 @@ export function Sidebar({ onNavigate }: SidebarProps) {
                           "h-4 w-4 shrink-0 transition-colors",
                           active
                             ? "text-primary"
-                            : "text-muted-foreground group-hover:text-foreground",
+                            : "text-muted-foreground group-hover:text-foreground"
                         )}
                         strokeWidth={2.25}
                       />
@@ -148,53 +161,75 @@ export function Sidebar({ onNavigate }: SidebarProps) {
               >
                 <Avatar className="h-9 w-9">
                   <AvatarFallback className="bg-primary/10 text-primary text-xs font-semibold">
-                    {getInitials(businessSettings.businessName)}
+                    {initials}
                   </AvatarFallback>
                 </Avatar>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {businessSettings.businessName}
+                    {settings.businessName || "ProfitBook"}
                   </p>
                   <p className="truncate text-[11px] text-muted-foreground">
-                    {businessSettings.ownerName}
+                    {settings.ownerName || "Owner"}
                   </p>
                 </div>
                 <ChevronsUpDown className="h-4 w-4 text-muted-foreground" />
               </button>
             }
           />
-          <DropdownMenuContent align="end" side="top" className="w-60">
-            <DropdownMenuLabel className="flex flex-col gap-0.5">
-              <span className="text-sm font-medium">
-                {businessSettings.ownerName}
-              </span>
-              <span className="text-xs font-normal text-muted-foreground">
-                {businessSettings.email}
-              </span>
-            </DropdownMenuLabel>
+          <DropdownMenuContent align="end" side="top" className="w-64">
+            <DropdownMenuGroup>
+              <DropdownMenuLabel className="flex flex-col gap-1">
+                <span className="text-sm font-medium">
+                  {settings.businessName || "ProfitBook"}
+                </span>
+                <span className="text-xs font-normal text-muted-foreground">
+                  {settings.ownerName || "Owner"}
+                </span>
+              </DropdownMenuLabel>
+            </DropdownMenuGroup>
+
             <DropdownMenuSeparator />
+
+            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+              <div className="flex items-center gap-2 py-0.5">
+                <Building2 className="h-3.5 w-3.5" />
+                <span className="truncate">{settings.address || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2 py-0.5">
+                <Phone className="h-3.5 w-3.5" />
+                <span className="truncate">{settings.phone || "—"}</span>
+              </div>
+              <div className="flex items-center gap-2 py-0.5">
+                <Mail className="h-3.5 w-3.5" />
+                <span className="truncate">{settings.email || "—"}</span>
+              </div>
+            </div>
+
+            <DropdownMenuSeparator />
+
+            <DropdownMenuGroup>
+              <DropdownMenuItem
+                render={
+                  <Link href="/settings" onClick={onNavigate}>
+                    <Settings className="mr-2 h-4 w-4" /> Business Settings
+                  </Link>
+                }
+              />
+              <DropdownMenuItem
+                render={
+                  <Link href="/statements" onClick={onNavigate}>
+                    <FileText className="mr-2 h-4 w-4" /> Statements
+                  </Link>
+                }
+              />
+            </DropdownMenuGroup>
+
+            <DropdownMenuSeparator />
+
             <DropdownMenuItem
-              render={
-                <Link href="/settings" onClick={onNavigate}>
-                  <Settings className="mr-2 h-4 w-4" /> Business Settings
-                </Link>
-              }
-            />
-            <DropdownMenuItem
-              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-destructive focus:text-destructive"
+              onClick={handleLogout}
             >
-              {mounted && theme === "dark" ? (
-                <>
-                  <Sun className="mr-2 h-4 w-4" /> Light mode
-                </>
-              ) : (
-                <>
-                  <Moon className="mr-2 h-4 w-4" /> Dark mode
-                </>
-              )}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive focus:text-destructive">
               <LogOut className="mr-2 h-4 w-4" /> Logout
             </DropdownMenuItem>
           </DropdownMenuContent>

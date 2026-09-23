@@ -11,20 +11,29 @@ export function useApi<T>(path: string) {
 
   useEffect(() => {
     let cancelled = false;
-    setLoading(true);
-    setError(null);
 
-    api
-      .get<T>(path)
-      .then((res) => {
-        if (!cancelled) setData(res);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+    const run = async () => {
+      try {
+        const res = await api.get<T>(path);
+        if (cancelled) return;
+        setData(res);
+        setError(null);
+      } catch (err) {
+        if (cancelled) return;
+        setError((err as Error).message);
+      } finally {
+        if (cancelled) return;
+        setLoading(false);
+      }
+    };
+
+    Promise.resolve().then(() => {
+      if (!cancelled) {
+        setLoading(true);
+        setError(null);
+      }
+      run();
+    });
 
     return () => {
       cancelled = true;

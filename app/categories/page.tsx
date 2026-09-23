@@ -10,14 +10,16 @@ import { Button } from "@/components/ui/button";
 import { AddCategoryForm } from "@/components/categories/add-category-form";
 import { CategoryTable } from "@/components/categories/category-table";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
+import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
 import { colorName } from "@/lib/color";
 import type { Category } from "@/lib/types";
-import { useApi } from "@/hooks/use-api";
 
 export default function CategoriesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Category | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const { data, loading, error, refetch } =
     useApi<Category[]>("/api/categories");
@@ -93,7 +95,7 @@ export default function CategoriesPage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Categories — ${esc(businessSettings.businessName)}</title>
+<title>Categories — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body {
@@ -127,9 +129,9 @@ export default function CategoriesPage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Category List</div>
     <div class="meta">${items.length} categories</div>
     <div class="meta">Generated on ${today}</div>
@@ -146,7 +148,7 @@ export default function CategoriesPage() {
     <tbody>${rows}</tbody>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;

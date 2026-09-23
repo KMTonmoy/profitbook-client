@@ -10,13 +10,15 @@ import { ProductTable } from "@/components/products/product-table";
 import { AddProductForm } from "@/components/products/add-product-form";
 import { Button } from "@/components/ui/button";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Product, Category, Supplier } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Product, Category, Supplier } from "@/lib/types";
 
 export default function ProductsPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Product | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const {
     data: productsData,
@@ -105,7 +107,7 @@ export default function ProductsPage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Product List — ${esc(businessSettings.businessName)}</title>
+<title>Product List — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -129,9 +131,9 @@ export default function ProductsPage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Product List</div>
     <div class="meta">${items.length} products · Generated on ${today}</div>
   </div>
@@ -153,7 +155,7 @@ export default function ProductsPage() {
     <tbody>${rows}</tbody>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;

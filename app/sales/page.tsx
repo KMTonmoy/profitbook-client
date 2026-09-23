@@ -11,14 +11,16 @@ import { AddSaleForm } from "@/components/sales/add-sale-form";
 import { InvoicePreview } from "@/components/sales/invoice-preview";
 import { Button } from "@/components/ui/button";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Sale, Customer, Product } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Sale, Customer, Product } from "@/lib/types";
 
 export default function SalesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Sale | null>(null);
   const [viewSale, setViewSale] = React.useState<Sale | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const {
     data: salesData,
@@ -156,9 +158,9 @@ export default function SalesPage() {
 </style></head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Sales List</div>
     <div class="meta">${sales.length} invoices · Generated on ${today}</div>
   </div>
@@ -184,7 +186,7 @@ export default function SalesPage() {
       <td></td>
     </tr></tfoot>
   </table>
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload=function(){window.print()}</script>
 </body></html>`;
 

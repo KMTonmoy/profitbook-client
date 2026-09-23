@@ -10,9 +10,9 @@ import { PurchaseTable } from "@/components/purchases/purchase-table";
 import { AddPurchaseForm } from "@/components/purchases/add-purchase-form";
 import { Button } from "@/components/ui/button";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Supplier, Product } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Supplier, Product } from "@/lib/types";
 
 export interface PurchaseLine {
   id: string;
@@ -43,6 +43,8 @@ export interface Purchase {
 export default function PurchasesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Purchase | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const {
     data: purchasesData,
@@ -129,7 +131,7 @@ export default function PurchasesPage() {
         <td class="num">${fmt(p.paid)}</td>
         <td class="num">${fmt(p.due)}</td>
         <td class="cap">${esc(p.status)}</td>
-      </tr>`,
+      </tr>`
       )
       .join("");
 
@@ -139,7 +141,7 @@ export default function PurchasesPage() {
         paid: a.paid + (p.paid || 0),
         due: a.due + (p.due || 0),
       }),
-      { total: 0, paid: 0, due: 0 },
+      { total: 0, paid: 0, due: 0 }
     );
 
     const html = `<!doctype html>
@@ -168,9 +170,9 @@ export default function PurchasesPage() {
 </style></head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Purchase List</div>
     <div class="meta">${purchases.length} purchases · Generated on ${today}</div>
   </div>
@@ -195,7 +197,7 @@ export default function PurchasesPage() {
       <td></td>
     </tr></tfoot>
   </table>
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload=function(){window.print()}</script>
 </body></html>`;
 

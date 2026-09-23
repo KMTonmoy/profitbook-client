@@ -5,6 +5,7 @@ import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/sonner";
 import { GoogleTranslate } from "@/components/layout/google-translate";
+import { AuthGate } from "@/components/auth/auth-gate";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -51,7 +52,6 @@ export default function RootLayout({
         suppressHydrationWarning
         className={`${inter.variable} ${hindSiliguri.variable} font-sans min-h-screen bg-background text-foreground`}
       >
-        <GoogleTranslate />
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
@@ -59,7 +59,10 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <TooltipProvider delay={200}>
-            {children}
+            <AuthGate>
+              <GoogleTranslate />
+              {children}
+            </AuthGate>
             <Toaster richColors position="top-right" />
           </TooltipProvider>
         </ThemeProvider>

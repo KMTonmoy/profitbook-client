@@ -9,14 +9,16 @@ import { PageHeader } from "@/components/shared/page-header";
 import { CustomerTable } from "@/components/customers/customer-table";
 import { Button } from "@/components/ui/button";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Customer } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Customer } from "@/lib/types";
 import { AddCustomerForm } from "@/components/customers/add-customer-form";
 
 export default function CustomersPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Customer | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const { data, loading, error, refetch } =
     useApi<Customer[]>("/api/customers");
@@ -100,7 +102,7 @@ export default function CustomersPage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Customers — ${esc(businessSettings.businessName)}</title>
+<title>Customers — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -136,9 +138,9 @@ export default function CustomersPage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Customer List</div>
     <div class="meta">${items.length} customers</div>
     <div class="meta">Generated on ${today}</div>
@@ -167,7 +169,7 @@ export default function CustomersPage() {
     </tfoot>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;

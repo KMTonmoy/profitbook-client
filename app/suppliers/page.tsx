@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { AddSupplierForm } from "@/components/suppliers/add-supplier-form";
 import { SupplierTable } from "@/components/suppliers/supplier-table";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Supplier } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Supplier } from "@/lib/types";
 
 export default function SuppliersPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Supplier | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const { data, loading, error, refetch } =
     useApi<Supplier[]>("/api/suppliers");
@@ -91,7 +93,7 @@ export default function SuppliersPage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Suppliers — ${esc(businessSettings.businessName)}</title>
+<title>Suppliers — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -114,9 +116,9 @@ export default function SuppliersPage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Supplier List</div>
     <div class="meta">${items.length} suppliers</div>
     <div class="meta">Generated on ${today}</div>
@@ -137,7 +139,7 @@ export default function SuppliersPage() {
     <tbody>${rows}</tbody>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;

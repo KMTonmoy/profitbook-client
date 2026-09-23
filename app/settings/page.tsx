@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Check, Moon, Sun, AlignJustify, Languages } from "lucide-react";
+import { Check, Moon, Sun, AlignJustify, Languages, Save } from "lucide-react";
 import { useTheme } from "next-themes";
 import { toast } from "sonner";
 
@@ -11,17 +11,65 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { businessSettings } from "@/lib/mock-data";
+import { Button } from "@/components/ui/button";
 import { useMounted } from "@/hooks/use-mounted";
 import { useCompactMode } from "@/hooks/use-compact-mode";
 import { useLanguage, type Language } from "@/hooks/use-language";
+import {
+  useBusinessSettings,
+  saveBusinessSettings,
+  DEFAULT_SETTINGS,
+} from "@/hooks/use-business-settings";
 import { cn } from "@/lib/utils";
+import type { BusinessSettings } from "@/lib/types";
 
 export default function SettingsPage() {
+  const { settings, loading } = useBusinessSettings();
+  const effective = settings ?? DEFAULT_SETTINGS;
+
+  // Remounts the form when the fetched settings change — no effect needed.
+  const formKey = `${effective.businessName}|${effective.ownerName}|${effective.phone}|${effective.email}|${effective.address}|${effective.invoicePrefix}|${effective.paymentTerms}|${effective.invoiceFooter}`;
+
+  return (
+    <AppShell title="Settings" subtitle="Business preferences">
+      <SettingsForm key={formKey} initial={effective} loading={loading} />
+    </AppShell>
+  );
+}
+
+function SettingsForm({
+  initial,
+  loading,
+}: {
+  initial: BusinessSettings;
+  loading: boolean;
+}) {
   const { setTheme, resolvedTheme } = useTheme();
   const mounted = useMounted();
   const { compact, setCompact } = useCompactMode();
   const { lang, setLanguage } = useLanguage();
+
+  const [form, setForm] = React.useState<BusinessSettings>(initial);
+  const [saving, setSaving] = React.useState(false);
+
+  const update = <K extends keyof BusinessSettings>(
+    key: K,
+    value: BusinessSettings[K],
+  ) => setForm((f) => ({ ...f, [key]: value }));
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await saveBusinessSettings(form);
+      toast.success("Settings saved", {
+        description: "Business profile updated everywhere.",
+      });
+    } catch (err) {
+      toast.error((err as Error).message);
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const applyTheme = (next: "light" | "dark" | "system") => {
     setTheme(next);
@@ -36,22 +84,27 @@ export default function SettingsPage() {
 
   const applyLanguage = (next: Language) => {
     setLanguage(next);
-    toast.success(
-      next === "bn"
-        ? "ভাষা পরিবর্তন হয়েছে: বাংলা"
-        : "Language changed: English",
-    );
   };
 
   const isLight = mounted && resolvedTheme === "light";
   const isDark = mounted && resolvedTheme === "dark";
 
   return (
-    <AppShell title="Settings" subtitle="Business preferences">
+    <>
       <PageHeader
         title="Settings"
         description="Configure your business profile and preferences"
-      />
+      >
+        <Button
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={handleSave}
+          disabled={saving || loading}
+        >
+          <Save className="h-4 w-4" />
+          {saving ? "Saving…" : "Save Changes"}
+        </Button>
+      </PageHeader>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <Card className="shadow-sm lg:col-span-2">
@@ -60,22 +113,39 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <Field label="Business Name" className="sm:col-span-2">
-              <Input defaultValue={businessSettings.businessName} />
+              <Input
+                value={form.businessName}
+                onChange={(e) => update("businessName", e.target.value)}
+              />
             </Field>
             <Field label="Owner Name">
-              <Input defaultValue={businessSettings.ownerName} />
+              <Input
+                value={form.ownerName}
+                onChange={(e) => update("ownerName", e.target.value)}
+              />
             </Field>
             <Field label="Phone">
-              <Input defaultValue={businessSettings.phone} />
+              <Input
+                value={form.phone}
+                onChange={(e) => update("phone", e.target.value)}
+              />
             </Field>
             <Field label="Email">
-              <Input defaultValue={businessSettings.email} />
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => update("email", e.target.value)}
+              />
             </Field>
             <Field label="Currency">
-              <Input defaultValue="BDT / ৳" disabled />
+              <Input value="BDT / ৳" disabled />
             </Field>
             <Field label="Address" className="sm:col-span-2">
-              <Textarea rows={2} defaultValue={businessSettings.address} />
+              <Textarea
+                rows={2}
+                value={form.address}
+                onChange={(e) => update("address", e.target.value)}
+              />
             </Field>
           </CardContent>
         </Card>
@@ -86,15 +156,25 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <Field label="Invoice Prefix">
-              <Input defaultValue="INV" />
+              <Input
+                value={form.invoicePrefix}
+                onChange={(e) => update("invoicePrefix", e.target.value)}
+              />
             </Field>
             <Field label="Payment Terms (days)">
-              <Input type="number" defaultValue={15} />
+              <Input
+                type="number"
+                value={form.paymentTerms}
+                onChange={(e) =>
+                  update("paymentTerms", Number(e.target.value) || 0)
+                }
+              />
             </Field>
             <Field label="Footer Message">
               <Textarea
                 rows={3}
-                defaultValue={businessSettings.invoiceFooter}
+                value={form.invoiceFooter}
+                onChange={(e) => update("invoiceFooter", e.target.value)}
               />
             </Field>
           </CardContent>
@@ -154,7 +234,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </AppShell>
+    </>
   );
 }
 

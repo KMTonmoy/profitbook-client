@@ -10,13 +10,15 @@ import { Button } from "@/components/ui/button";
 import { ExpenseTable } from "@/components/expenses/expense-table";
 import { AddExpenseForm } from "@/components/expenses/add-expense-form";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
-import type { Expense } from "@/lib/types";
 import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
+import type { Expense } from "@/lib/types";
 
 export default function ExpensesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Expense | null>(null);
+
+  const { settings } = useBusinessSettingsOrDefault();
 
   const { data, loading, error, refetch } = useApi<Expense[]>("/api/expenses");
   const items = data ?? [];
@@ -95,7 +97,7 @@ export default function ExpensesPage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Expenses — ${esc(businessSettings.businessName)}</title>
+<title>Expenses — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -121,9 +123,9 @@ export default function ExpensesPage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Expense Report</div>
     <div class="meta">${items.length} entries · Generated on ${today}</div>
   </div>
@@ -148,7 +150,7 @@ export default function ExpensesPage() {
     </tfoot>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;

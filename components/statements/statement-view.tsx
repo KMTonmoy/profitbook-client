@@ -15,7 +15,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { endpoints } from "@/lib/endpoints";
-import { businessSettings } from "@/lib/mock-data";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
 import { formatCurrency, formatDate } from "@/lib/format";
 
 export interface StatementHandle {
@@ -89,6 +89,14 @@ export interface StatementData {
     currentValue: number;
   };
   due: { opening: number; newDue: number; collected: number; closing: number };
+}
+
+interface PrintBusinessInfo {
+  businessName: string;
+  address: string;
+  phone: string;
+  email?: string;
+  invoiceFooter: string;
 }
 
 function pad(n: number) {
@@ -202,6 +210,8 @@ const EMPTY: StatementData = {
 
 export const StatementView = React.forwardRef<StatementHandle>(
   function StatementView(_props, ref) {
+    const { settings } = useBusinessSettingsOrDefault();
+
     const [preset, setPreset] = React.useState<RangePreset>("month");
     const [customFrom, setCustomFrom] = React.useState(() => {
       const d = new Date();
@@ -252,7 +262,7 @@ export const StatementView = React.forwardRef<StatementHandle>(
           toast.error("Statement is still loading");
           return;
         }
-        openPrintWindow(data);
+        openPrintWindow(data, settings);
       },
     }));
 
@@ -395,11 +405,7 @@ function StatementOutput({ data }: { data: StatementData }) {
             },
             { label: "Total Purchase Cost", value: data.purchases.cost },
             { label: "Paid", value: data.purchases.paid, tone: "success" },
-            {
-              label: "Due",
-              value: data.purchases.due,
-              tone: "destructive",
-            },
+            { label: "Due", value: data.purchases.due, tone: "destructive" },
             { label: "Purchase Return", value: data.purchases.returned },
           ]}
         />
@@ -482,10 +488,7 @@ function StatementOutput({ data }: { data: StatementData }) {
       <Section title="Stock Summary">
         <Grid
           items={[
-            {
-              label: "Opening Stock Value",
-              value: data.stock.openingValue,
-            },
+            { label: "Opening Stock Value", value: data.stock.openingValue },
             {
               label: "Purchased Stock Value",
               value: data.stock.purchasedValue,
@@ -504,21 +507,13 @@ function StatementOutput({ data }: { data: StatementData }) {
         <Grid
           items={[
             { label: "Opening Due", value: data.due.opening },
-            {
-              label: "New Due",
-              value: data.due.newDue,
-              tone: "destructive",
-            },
+            { label: "New Due", value: data.due.newDue, tone: "destructive" },
             {
               label: "Due Collected",
               value: data.due.collected,
               tone: "success",
             },
-            {
-              label: "Closing Due",
-              value: data.due.closing,
-              tone: "warning",
-            },
+            { label: "Closing Due", value: data.due.closing, tone: "warning" },
           ]}
         />
       </Section>
@@ -591,7 +586,7 @@ function Row({ label, value }: { label: string; value: number }) {
   );
 }
 
-function openPrintWindow(data: StatementData) {
+function openPrintWindow(data: StatementData, biz: PrintBusinessInfo) {
   const w = window.open("", "_blank", "width=1100,height=850");
   if (!w) return;
 
@@ -616,7 +611,7 @@ function openPrintWindow(data: StatementData) {
 
   const html = `<!doctype html>
 <html><head><meta charset="utf-8" /><title>Statement — ${esc(
-    businessSettings.businessName,
+    biz.businessName,
   )}</title>
 <style>
   * { box-sizing: border-box; }
@@ -636,9 +631,10 @@ function openPrintWindow(data: StatementData) {
   @media print { body { padding:12mm; } @page { margin:12mm; size:A4 portrait; } }
 </style></head><body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(biz.businessName)}</h1>
+    <div class="meta">${esc(biz.address)}</div>
+    <div class="meta">${esc(biz.phone)}</div>
+    ${biz.email ? `<div class="meta">${esc(biz.email)}</div>` : ""}
     <div class="meta" style="margin-top:6px">
       <strong>Business Statement</strong> · ${esc(rangeLabel)}
     </div>
@@ -727,7 +723,7 @@ function openPrintWindow(data: StatementData) {
     ].join(""),
   )}
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(biz.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body></html>`;
 

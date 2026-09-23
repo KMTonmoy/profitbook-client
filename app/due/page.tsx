@@ -9,13 +9,15 @@ import { PageHeader } from "@/components/shared/page-header";
 import { StatCard } from "@/components/shared/stat-card";
 import { Button } from "@/components/ui/button";
 import { DueTable } from "@/components/due/due-table";
-import { businessSettings } from "@/lib/mock-data";
+import { useApi } from "@/hooks/use-api";
+import { useBusinessSettingsOrDefault } from "@/hooks/use-business-settings";
 import { formatCurrency } from "@/lib/format";
 import { CreditCard, AlertCircle, Calendar, CheckCircle2 } from "lucide-react";
 import type { Due } from "@/lib/types";
-import { useApi } from "@/hooks/use-api";
 
 export default function DuePage() {
+  const { settings } = useBusinessSettingsOrDefault();
+
   const { data, loading, error, refetch } = useApi<Due[]>("/api/dues");
   const items = data ?? [];
 
@@ -67,7 +69,7 @@ export default function DuePage() {
 <html>
 <head>
 <meta charset="utf-8" />
-<title>Due List — ${esc(businessSettings.businessName)}</title>
+<title>Due List — ${esc(settings.businessName)}</title>
 <style>
   * { box-sizing: border-box; }
   body {
@@ -92,9 +94,9 @@ export default function DuePage() {
 </head>
 <body>
   <div class="header">
-    <h1>${esc(businessSettings.businessName)}</h1>
-    <div class="meta">${esc(businessSettings.address)}</div>
-    <div class="meta">${esc(businessSettings.phone)}</div>
+    <h1>${esc(settings.businessName)}</h1>
+    <div class="meta">${esc(settings.address)}</div>
+    <div class="meta">${esc(settings.phone)}</div>
     <div class="report-title">Due / Credit Report</div>
     <div class="meta">${items.length} entries · Generated on ${today}</div>
   </div>
@@ -123,7 +125,7 @@ export default function DuePage() {
     </tfoot>
   </table>
 
-  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(settings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
 </body>
 </html>`;
