@@ -60,27 +60,27 @@ interface HeaderProps {
 const quickActions = [
   {
     label: "Add Product",
-    href: "/products/new",
+    href: "/products",
     icon: Package,
     shortcut: "⌘P",
   },
   {
     label: "Record Purchase",
-    href: "/purchases/new",
+    href: "/purchases",
     icon: ShoppingCart,
     shortcut: "⌘U",
   },
-  { label: "Record Sale", href: "/sales/new", icon: Receipt, shortcut: "⌘S" },
+  { label: "Record Sale", href: "/sales", icon: Receipt, shortcut: "⌘S" },
   {
     label: "Add Customer",
-    href: "/customers/new",
+    href: "/customers",
     icon: Users,
     shortcut: "⌘C",
   },
-  { label: "Add Expense", href: "/expenses/new", icon: Wallet, shortcut: "⌘E" },
+  { label: "Add Expense", href: "/expenses", icon: Wallet, shortcut: "⌘E" },
   {
     label: "Record Due Payment",
-    href: "/due/new",
+    href: "/due",
     icon: CreditCard,
     shortcut: "⌘D",
   },
@@ -350,7 +350,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               render={
                 <Button size="sm" className="h-9 gap-1.5">
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline">New</span>
+                  <span className="hidden sm:inline"</span>
                 </Button>
               }
             />
