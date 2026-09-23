@@ -1,12 +1,19 @@
+"use client";
+
+import * as React from "react";
+import { Printer } from "lucide-react";
+
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
-import { StatementView } from "@/components/statements/statement-view";
 import { Button } from "@/components/ui/button";
-import { Printer, Download, FileSpreadsheet } from "lucide-react";
-
-export const metadata = { title: "Statements" };
+import {
+  StatementView,
+  type StatementHandle,
+} from "@/components/statements/statement-view";
 
 export default function StatementsPage() {
+  const ref = React.useRef<StatementHandle>(null);
+
   return (
     <AppShell
       title="Statements"
@@ -14,23 +21,18 @@ export default function StatementsPage() {
     >
       <PageHeader
         title="Business Statements"
-        description="Pick a date range and generate a complete financial summary"
+        description="Pick a date range — the statement updates automatically"
       >
-        <Button variant="outline" size="sm" className="h-9 gap-1.5">
-          <FileSpreadsheet className="h-4 w-4" /> Excel
-        </Button>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5">
-          <Download className="h-4 w-4" /> PDF
-        </Button>
-        <Button variant="outline" size="sm" className="h-9 gap-1.5">
-          <Printer className="h-4 w-4" /> Print
-        </Button>
-        <Button size="sm" className="h-9">
-          Generate Statement
+        <Button
+          size="sm"
+          className="h-9 gap-1.5"
+          onClick={() => ref.current?.print()}
+        >
+          <Printer className="h-4 w-4" /> Print Statement
         </Button>
       </PageHeader>
 
-      <StatementView />
+      <StatementView ref={ref} />
     </AppShell>
   );
 }

@@ -48,6 +48,7 @@ export default function RootLayout({
         />
       </head>
       <body
+        suppressHydrationWarning
         className={`${inter.variable} ${hindSiliguri.variable} font-sans min-h-screen bg-background text-foreground`}
       >
         <GoogleTranslate />
