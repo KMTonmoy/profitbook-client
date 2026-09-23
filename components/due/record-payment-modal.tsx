@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -15,31 +16,58 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import type { Due } from "@/lib/types";
+import { endpoints } from "@/lib/endpoints";
 import { formatCurrency } from "@/lib/format";
+import type { Due } from "@/lib/types";
 
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   due: Due | null;
+  onSaved: () => void;
 }
 
-export function RecordPaymentModal({ open, onOpenChange, due }: Props) {
-  const form = useForm<{
-    amount: number;
-    method: string;
-    date: string;
-    note?: string;
-  }>({
-    defaultValues: { amount: due?.due ?? 0, method: "cash" },
+interface FormValues {
+  amount: number;
+  method: "cash" | "bkash" | "nagad" | "bank" | "card";
+  date: string;
+  note?: string;
+}
+
+export function RecordPaymentModal({
+  open,
+  onOpenChange,
+  due,
+  onSaved,
+}: Props) {
+  const form = useForm<FormValues>({
+    defaultValues: {
+      amount: due?.due ?? 0,
+      method: "cash",
+      date: new Date().toISOString().slice(0, 10),
+      note: "",
+    },
   });
 
-  const onSubmit = form.handleSubmit((v) => {
-    toast.success("Payment recorded", {
-      description: `${formatCurrency(v.amount)} received from ${due?.customerName}.`,
-    });
-    onOpenChange(false);
-    form.reset();
+  const onSubmit = form.handleSubmit(async (values) => {
+    if (!due) return;
+    try {
+      await endpoints.payments.create({
+        customerId: due.customerId,
+        saleId: due.saleId,
+        invoiceNumber: due.invoiceNumber,
+        amount: Number(values.amount),
+        method: values.method,
+        date: values.date,
+        note: values.note?.trim() || undefined,
+      });
+      toast.success("Payment recorded", {
+        description: `${formatCurrency(values.amount)} received`,
+      });
+      onSaved();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   });
 
   if (!due) return null;
@@ -53,37 +81,59 @@ export function RecordPaymentModal({ open, onOpenChange, due }: Props) {
       size="md"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            className="h-11 px-6"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Save Payment</Button>
+          <Button className="h-11 px-6" onClick={onSubmit}>
+            Save Payment
+          </Button>
         </>
       }
     >
       <form onSubmit={onSubmit} className="grid grid-cols-1 gap-4">
         <div className="rounded-xl border bg-muted/40 p-4">
           <div className="grid grid-cols-2 gap-3 text-sm">
-            <Info label="Invoice" value={due.invoiceNumber} />
-            <Info label="Outstanding Due" value={formatCurrency(due.due)} />
+            <div>
+              <p className="text-xs text-muted-foreground">Invoice</p>
+              <p className="mt-0.5 font-medium">{due.invoiceNumber ?? "—"}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Outstanding Due</p>
+              <p className="mt-0.5 font-medium text-destructive">
+                {formatCurrency(due.due ?? 0)}
+              </p>
+            </div>
           </div>
         </div>
 
-        <Field label="Payment Amount (৳)">
+        <div>
+          <Label className="mb-1.5 block text-xs font-medium">
+            Payment Amount (৳)
+          </Label>
           <Input
             type="number"
+            min="0"
             step="0.01"
+            className="h-11"
             {...form.register("amount", { valueAsNumber: true })}
           />
-        </Field>
+        </div>
 
-        <Field label="Payment Method">
+        <div>
+          <Label className="mb-1.5 block text-xs font-medium">
+            Payment Method
+          </Label>
           <Select
-            onValueChange={(value) => {
-              if (value) form.setValue("method", value);
-            }}
             defaultValue="cash"
+            onValueChange={(v) =>
+              form.setValue("method", String(v) as FormValues["method"])
+            }
           >
-            <SelectTrigger>
+            <SelectTrigger className="h-11">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -94,44 +144,22 @@ export function RecordPaymentModal({ open, onOpenChange, due }: Props) {
               <SelectItem value="card">Card</SelectItem>
             </SelectContent>
           </Select>
-        </Field>
+        </div>
 
-        <Field label="Date">
-          <Input type="date" {...form.register("date")} />
-        </Field>
+        <div>
+          <Label className="mb-1.5 block text-xs font-medium">Date</Label>
+          <Input type="date" className="h-11" {...form.register("date")} />
+        </div>
 
-        <Field label="Note">
+        <div>
+          <Label className="mb-1.5 block text-xs font-medium">Note</Label>
           <Textarea
             rows={3}
             {...form.register("note")}
             placeholder="Optional note"
           />
-        </Field>
+        </div>
       </form>
     </FormModal>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <Label className="mb-1.5 block text-xs font-medium">{label}</Label>
-      {children}
-    </div>
-  );
-}
-
-function Info({ label, value }: { label: string; value: string }) {
-  return (
-    <div>
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="mt-0.5 font-medium">{value}</p>
-    </div>
   );
 }

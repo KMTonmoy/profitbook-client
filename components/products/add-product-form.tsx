@@ -16,11 +16,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { categories, suppliers } from "@/lib/mock-data";
 import { formatCurrency } from "@/lib/format";
-import type { Product, StockStatus } from "@/lib/types";
+import type { Product, StockStatus, Category, Supplier } from "@/lib/types";
 
-export interface AddProductFormValues {
+interface FormValues {
   name: string;
   sku: string;
   categoryId: string;
@@ -28,7 +27,8 @@ export interface AddProductFormValues {
   unit: string;
   purchasePrice: number;
   sellingPrice: number;
-  stock: number;
+  currentStock: number;
+  minimumStock: number;
   supplierId?: string;
   description?: string;
 }
@@ -37,6 +37,10 @@ interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
   onAdd: (product: Product) => void;
+  onUpdate: (product: Product) => void;
+  editTarget: Product | null;
+  categories: Category[];
+  suppliers: Supplier[];
 }
 
 const UNITS = [
@@ -51,45 +55,70 @@ const UNITS = [
   { value: "box", label: "Box" },
   { value: "carton", label: "Carton" },
   { value: "dozen", label: "Dozen" },
-  { value: "piece", label: "Piece" },
   { value: "packet", label: "Packet" },
   { value: "meter", label: "Meter (m)" },
   { value: "roll", label: "Roll" },
 ];
 
-function deriveStatus(stock: number): StockStatus {
+function deriveStatus(stock: number, minimum: number): StockStatus {
   if (stock <= 0) return "out-of-stock";
-  if (stock <= 10) return "low-stock";
+  if (stock <= minimum) return "low-stock";
   return "in-stock";
 }
 
-export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
-  const form = useForm<AddProductFormValues>({
-    defaultValues: {
-      unit: "pcs",
-      purchasePrice: 0,
-      sellingPrice: 0,
-      stock: 0,
-    },
-  });
+function todayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-  const [categoryId, setCategoryId] = React.useState<string>("");
-  const [supplierId, setSupplierId] = React.useState<string>("");
-  const [unit, setUnit] = React.useState<string>("pcs");
+export function AddProductForm({
+  open,
+  onOpenChange,
+  onAdd,
+  onUpdate,
+  editTarget,
+  categories,
+  suppliers,
+}: Props) {
+  const isEdit = !!editTarget;
+
+  const initial: FormValues = editTarget
+    ? {
+        name: editTarget.name,
+        sku: editTarget.sku,
+        categoryId: editTarget.categoryId,
+        brand: editTarget.brand ?? "",
+        unit: editTarget.unit,
+        purchasePrice: editTarget.purchasePrice,
+        sellingPrice: editTarget.sellingPrice,
+        currentStock: editTarget.currentStock,
+        minimumStock: editTarget.minimumStock,
+        supplierId: editTarget.supplierId ?? "",
+        description: editTarget.description ?? "",
+      }
+    : {
+        name: "",
+        sku: "",
+        categoryId: "",
+        brand: "",
+        unit: "pcs",
+        purchasePrice: 0,
+        sellingPrice: 0,
+        currentStock: 0,
+        minimumStock: 10,
+        supplierId: "",
+        description: "",
+      };
+
+  const form = useForm<FormValues>({ defaultValues: initial });
+
+  const [categoryId, setCategoryId] = React.useState(initial.categoryId);
+  const [supplierId, setSupplierId] = React.useState(initial.supplierId ?? "");
+  const [unit, setUnit] = React.useState(initial.unit);
 
   const purchase = Number(form.watch("purchasePrice")) || 0;
   const selling = Number(form.watch("sellingPrice")) || 0;
   const profit = selling - purchase;
   const margin = selling > 0 ? (profit / selling) * 100 : 0;
-
-  React.useEffect(() => {
-    if (open) {
-      form.reset();
-      setCategoryId("");
-      setSupplierId("");
-      setUnit("pcs");
-    }
-  }, [open, form]);
 
   const onSubmit = form.handleSubmit((values) => {
     if (!categoryId) {
@@ -97,10 +126,11 @@ export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
       return;
     }
 
-    const stock = Number(values.stock) || 0;
+    const stock = Number(values.currentStock) || 0;
+    const minimum = Number(values.minimumStock) || 10;
 
     const product: Product = {
-      id: `p-${Date.now()}`,
+      id: editTarget?.id ?? "",
       name: values.name.trim(),
       sku: values.sku.trim(),
       categoryId,
@@ -108,41 +138,49 @@ export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
       unit,
       purchasePrice: Number(values.purchasePrice) || 0,
       sellingPrice: Number(values.sellingPrice) || 0,
-      openingStock: stock,
+      openingStock: editTarget?.openingStock ?? stock,
       currentStock: stock,
-      minimumStock: 10,
+      minimumStock: minimum,
       supplierId: supplierId || undefined,
       description: values.description?.trim() || undefined,
-      status: deriveStatus(stock),
-      createdAt: new Date().toISOString().slice(0, 10),
+      imageUrl: editTarget?.imageUrl,
+      status: deriveStatus(stock, minimum),
+      createdAt: editTarget?.createdAt ?? todayISO(),
     };
 
-    onAdd(product);
-    toast.success("Product added", {
-      description: `${product.name} has been added to your catalog.`,
-    });
+    if (isEdit) {
+      onUpdate(product);
+      toast.success("Product updated", { description: product.name });
+    } else {
+      onAdd(product);
+      toast.success("Product added", { description: product.name });
+    }
     onOpenChange(false);
   });
-
-  const onInvalid = () => {
-    toast.error("Please fill all required fields", {
-      description: "Product name, SKU, category, unit and prices are required.",
-    });
-  };
 
   return (
     <FormModal
       open={open}
       onOpenChange={onOpenChange}
-      title="Add Product"
-      description="Create a new product in your catalog"
+      title={isEdit ? "Edit Product" : "Add Product"}
+      description={
+        isEdit
+          ? "Update this product's details"
+          : "Create a new product in your catalog"
+      }
       size="xl"
       footer={
         <>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button
+            variant="outline"
+            className="h-11 px-6"
+            onClick={() => onOpenChange(false)}
+          >
             Cancel
           </Button>
-          <Button onClick={onSubmit}>Save Product</Button>
+          <Button className="h-11 px-6" onClick={onSubmit}>
+            {isEdit ? "Save Changes" : "Save Product"}
+          </Button>
         </>
       }
     >
@@ -234,19 +272,28 @@ export function AddProductForm({ open, onOpenChange, onAdd }: Props) {
           />
         </Field>
 
-        <Field label="Stock *">
+        <Field label="Current Stock *">
           <Input
             type="number"
             min="0"
             placeholder="e.g. 400"
-            {...form.register("stock", {
+            {...form.register("currentStock", {
               required: true,
               valueAsNumber: true,
             })}
           />
         </Field>
 
-        <Field label="Supplier">
+        <Field label="Minimum Stock">
+          <Input
+            type="number"
+            min="0"
+            placeholder="e.g. 10"
+            {...form.register("minimumStock", { valueAsNumber: true })}
+          />
+        </Field>
+
+        <Field label="Supplier" className="sm:col-span-2">
           <Select
             value={supplierId}
             onValueChange={(value) => setSupplierId(String(value))}

@@ -2,38 +2,26 @@
 
 import * as React from "react";
 import { Plus, Printer } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { Button } from "@/components/ui/button";
-import {
-  categories as initialCategories,
-  businessSettings,
-} from "@/lib/mock-data";
-import type { Category } from "@/lib/types";
 import { AddCategoryForm } from "@/components/categories/add-category-form";
 import { CategoryTable } from "@/components/categories/category-table";
+import { endpoints } from "@/lib/endpoints";
+import { businessSettings } from "@/lib/mock-data";
+import { colorName } from "@/lib/color";
+import type { Category } from "@/lib/types";
+import { useApi } from "@/hooks/use-api";
 
 export default function CategoriesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Category | null>(null);
-  const [items, setItems] = React.useState<Category[]>(initialCategories);
 
-  const handleAdd = (data: Omit<Category, "id">) => {
-    const category: Category = {
-      ...data,
-      id: `cat-${crypto.randomUUID()}`,
-    };
-    setItems((prev) => [category, ...prev]);
-  };
-
-  const handleUpdate = (category: Category) => {
-    setItems((prev) => prev.map((c) => (c.id === category.id ? category : c)));
-  };
-
-  const handleDelete = (id: string) => {
-    setItems((prev) => prev.filter((c) => c.id !== id));
-  };
+  const { data, loading, error, refetch } =
+    useApi<Category[]>("/api/categories");
+  const items = data ?? [];
 
   const openCreate = () => {
     setEditTarget(null);
@@ -43,6 +31,36 @@ export default function CategoriesPage() {
   const openEdit = (c: Category) => {
     setEditTarget(c);
     setOpen(true);
+  };
+
+  const handleAdd = async (payload: Omit<Category, "id">) => {
+    try {
+      await endpoints.categories.create(payload);
+      toast.success("Category added");
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const handleUpdate = async (category: Category) => {
+    try {
+      await endpoints.categories.update(category.id, category);
+      toast.success("Category updated");
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await endpoints.categories.remove(id);
+      toast.success("Category deleted");
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   };
 
   const handlePrint = () => {
@@ -62,8 +80,10 @@ export default function CategoriesPage() {
         <td class="ctr">${i + 1}</td>
         <td>${esc(c.name)}</td>
         <td>
-          <span style="display:inline-block;width:12px;height:12px;border:1px solid #000;background:${esc(c.color ?? "#e5e7eb")};margin-right:6px;vertical-align:middle"></span>
-          ${esc(c.color ?? "—")}
+          <span style="display:inline-block;width:14px;height:14px;border:1px solid #000;background:${esc(
+            c.color ?? "#e5e7eb",
+          )};margin-right:8px;vertical-align:middle;-webkit-print-color-adjust:exact;print-color-adjust:exact"></span>
+          ${esc(colorName(c.color))}
         </td>
       </tr>`,
       )
@@ -75,7 +95,7 @@ export default function CategoriesPage() {
 <meta charset="utf-8" />
 <title>Categories — ${esc(businessSettings.businessName)}</title>
 <style>
-  * { box-sizing: border-box; }
+  * { box-sizing: border-box; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   body {
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
     color: #000; background: #fff;
@@ -154,7 +174,23 @@ export default function CategoriesPage() {
         </Button>
       </PageHeader>
 
-      <CategoryTable items={items} onDelete={handleDelete} onEdit={openEdit} />
+      {error && (
+        <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          Failed to load categories: {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
+          Loading categories…
+        </div>
+      ) : (
+        <CategoryTable
+          items={items}
+          onDelete={handleDelete}
+          onEdit={openEdit}
+        />
+      )}
 
       <AddCategoryForm
         key={`${open}-${editTarget?.id ?? "new"}`}

@@ -14,9 +14,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { endpoints } from "@/lib/endpoints";
 import { businessSettings } from "@/lib/mock-data";
-import { sales as allSales, expenses as allExpenses } from "@/lib/mock-data";
+import { formatCurrency, formatDate } from "@/lib/format";
 
 export interface StatementHandle {
   print: () => void;
@@ -43,15 +43,77 @@ const PRESETS: { label: string; value: RangePreset }[] = [
   { label: "Custom Range", value: "custom" },
 ];
 
+export interface StatementData {
+  range: { from: string; to: string };
+  business: {
+    openingBalance: number;
+    totalSales: number;
+    totalPurchase: number;
+    totalExpenses: number;
+    totalCollection: number;
+    totalDue: number;
+    grossProfit: number;
+    netProfit: number;
+    closingBalance: number;
+  };
+  sales: {
+    count: number;
+    amount: number;
+    paid: number;
+    due: number;
+    returned: number;
+  };
+  purchases: {
+    count: number;
+    cost: number;
+    paid: number;
+    due: number;
+    returned: number;
+  };
+  expenses: {
+    total: number;
+    byCategory: { category: string; amount: number }[];
+  };
+  profit: {
+    revenue: number;
+    cogs: number;
+    grossProfit: number;
+    expenses: number;
+    netProfit: number;
+    margin: number;
+  };
+  stock: {
+    openingValue: number;
+    purchasedValue: number;
+    soldValue: number;
+    currentValue: number;
+  };
+  due: { opening: number; newDue: number; collected: number; closing: number };
+}
+
+function pad(n: number) {
+  return String(n).padStart(2, "0");
+}
+
+function todayISO() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 function startOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(0, 0, 0, 0);
   return x;
 }
+
 function endOfDay(d: Date) {
   const x = new Date(d);
   x.setHours(23, 59, 59, 999);
   return x;
+}
+
+function isoDate(d: Date) {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
 function rangeForPreset(p: RangePreset, customFrom: string, customTo: string) {
@@ -110,156 +172,87 @@ function rangeForPreset(p: RangePreset, customFrom: string, customTo: string) {
   return { from, to };
 }
 
-interface StatementData {
-  rangeLabel: string;
-  from: string;
-  to: string;
-  openingBalance: number;
-  totalSales: number;
-  totalPurchase: number;
-  totalExpenses: number;
-  totalCollection: number;
-  totalDue: number;
-  grossProfit: number;
-  netProfit: number;
-  closingBalance: number;
-
-  salesCount: number;
-  salesPaid: number;
-  salesDue: number;
-
-  purchaseCount: number;
-  purchasePaid: number;
-  purchaseDue: number;
-
-  expensesByCategory: { category: string; amount: number }[];
-
-  cogs: number;
-  profitMargin: number;
-
-  openingStockValue: number;
-  purchasedStockValue: number;
-  soldStockValue: number;
-  currentStockValue: number;
-
-  openingDue: number;
-  newDue: number;
-  dueCollected: number;
-  closingDue: number;
-}
-
-function computeStatement(from: Date, to: Date, label: string): StatementData {
-  const inRange = (d: string) => {
-    const x = new Date(d);
-    return x >= from && x <= to;
-  };
-
-  const salesInRange = allSales.filter((s) => inRange(s.date));
-  const expensesInRange = allExpenses.filter((e) => inRange(e.date));
-
-  const totalSales = salesInRange.reduce((s, x) => s + x.total, 0);
-  const totalSalesPaid = salesInRange.reduce((s, x) => s + x.paid, 0);
-  const totalSalesDue = salesInRange.reduce((s, x) => s + x.due, 0);
-  const totalProfit = salesInRange.reduce((s, x) => s + x.profit, 0);
-  const totalExpenses = expensesInRange.reduce((s, x) => s + x.amount, 0);
-
-  const cogs = Math.max(0, totalSales - totalProfit);
-  const grossProfit = totalProfit;
-  const netProfit = grossProfit - totalExpenses;
-  const profitMargin = totalSales > 0 ? (netProfit / totalSales) * 100 : 0;
-
-  const expenseByCat = expensesInRange.reduce<Record<string, number>>(
-    (acc, e) => {
-      acc[e.category] = (acc[e.category] ?? 0) + e.amount;
-      return acc;
-    },
-    {},
-  );
-
-  const openingStockValue = 412000;
-  const currentStockValue = openingStockValue;
-
-  const openingDue = 18400;
-  const newDue = totalSalesDue;
-  const dueCollected = 0;
-  const closingDue = Math.max(0, openingDue + newDue - dueCollected);
-
-  const openingBalance = 142000;
-  const closingBalance = openingBalance + totalSalesPaid - totalExpenses;
-
-  return {
-    rangeLabel: label,
-    from: from.toISOString().slice(0, 10),
-    to: to.toISOString().slice(0, 10),
-    openingBalance,
-    totalSales,
-    totalPurchase: cogs,
-    totalExpenses,
-    totalCollection: totalSalesPaid,
-    totalDue: totalSalesDue,
-    grossProfit,
-    netProfit,
-    closingBalance,
-
-    salesCount: salesInRange.length,
-    salesPaid: totalSalesPaid,
-    salesDue: totalSalesDue,
-
-    purchaseCount: salesInRange.length,
-    purchasePaid: cogs,
-    purchaseDue: 0,
-
-    expensesByCategory: Object.entries(expenseByCat)
-      .map(([category, amount]) => ({ category, amount }))
-      .sort((a, b) => b.amount - a.amount),
-
-    cogs,
-    profitMargin,
-
-    openingStockValue,
-    purchasedStockValue: cogs,
-    soldStockValue: cogs,
-    currentStockValue,
-
-    openingDue,
-    newDue,
-    dueCollected,
-    closingDue,
-  };
-}
+const EMPTY: StatementData = {
+  range: { from: "", to: "" },
+  business: {
+    openingBalance: 0,
+    totalSales: 0,
+    totalPurchase: 0,
+    totalExpenses: 0,
+    totalCollection: 0,
+    totalDue: 0,
+    grossProfit: 0,
+    netProfit: 0,
+    closingBalance: 0,
+  },
+  sales: { count: 0, amount: 0, paid: 0, due: 0, returned: 0 },
+  purchases: { count: 0, cost: 0, paid: 0, due: 0, returned: 0 },
+  expenses: { total: 0, byCategory: [] },
+  profit: {
+    revenue: 0,
+    cogs: 0,
+    grossProfit: 0,
+    expenses: 0,
+    netProfit: 0,
+    margin: 0,
+  },
+  stock: { openingValue: 0, purchasedValue: 0, soldValue: 0, currentValue: 0 },
+  due: { opening: 0, newDue: 0, collected: 0, closing: 0 },
+};
 
 export const StatementView = React.forwardRef<StatementHandle>(
   function StatementView(_props, ref) {
     const [preset, setPreset] = React.useState<RangePreset>("month");
-    const [customFrom, setCustomFrom] = React.useState(
-      new Date(new Date().getFullYear(), new Date().getMonth(), 1)
-        .toISOString()
-        .slice(0, 10),
-    );
-    const [customTo, setCustomTo] = React.useState(
-      new Date().toISOString().slice(0, 10),
-    );
+    const [customFrom, setCustomFrom] = React.useState(() => {
+      const d = new Date();
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-01`;
+    });
+    const [customTo, setCustomTo] = React.useState(todayISO());
 
-    const data = React.useMemo(() => {
-      const { from, to } = rangeForPreset(preset, customFrom, customTo);
-      const label = `${
-        PRESETS.find((p) => p.value === preset)?.label ?? "Custom"
-      } · ${formatDate(from.toISOString().slice(0, 10))} → ${formatDate(
-        to.toISOString().slice(0, 10),
-      )}`;
-      return computeStatement(from, to, label);
-    }, [preset, customFrom, customTo]);
+    const [data, setData] = React.useState<StatementData>(EMPTY);
+    const [error, setError] = React.useState<string | null>(null);
+    const [version, setVersion] = React.useState(0);
+    const [fetchedFor, setFetchedFor] = React.useState<string | null>(null);
+
+    const range = React.useMemo(
+      () => rangeForPreset(preset, customFrom, customTo),
+      [preset, customFrom, customTo],
+    );
+    const fromIso = isoDate(range.from);
+    const toIso = isoDate(range.to);
+    const key = `${fromIso}|${toIso}|${version}`;
+    const isLoading = fetchedFor !== key;
+
+    React.useEffect(() => {
+      let cancelled = false;
+
+      endpoints.statements
+        .generate(fromIso, toIso)
+        .then((res) => {
+          if (cancelled) return;
+          setData(res as StatementData);
+          setError(null);
+          setFetchedFor(key);
+        })
+        .catch((err: Error) => {
+          if (cancelled) return;
+          setError(err.message);
+          setData(EMPTY);
+          setFetchedFor(key);
+        });
+
+      return () => {
+        cancelled = true;
+      };
+    }, [fromIso, toIso, key]);
 
     React.useImperativeHandle(ref, () => ({
       print: () => {
-        const w = window.open("", "_blank", "width=1100,height=850");
-        if (!w) {
-          toast.error("Pop-up blocked — please allow pop-ups for printing");
+        if (isLoading) {
+          toast.error("Statement is still loading");
           return;
         }
-        w.document.write(buildStatementHTML(data));
-        w.document.close();
-        toast.success("Opening print dialog…");
+        openPrintWindow(data);
       },
     }));
 
@@ -314,48 +307,66 @@ export const StatementView = React.forwardRef<StatementHandle>(
               )}
             </div>
 
-            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <button
+              type="button"
+              onClick={() => setVersion((v) => v + 1)}
+              className="flex items-center gap-2 text-xs text-muted-foreground transition-colors hover:text-foreground"
+            >
               <CalendarRange className="h-4 w-4" />
-              Auto-updates with the selected range
-            </div>
+              {isLoading ? "Loading…" : "Auto-updates · click to refresh"}
+            </button>
           </CardContent>
         </Card>
 
-        <StatementOutput data={data} />
+        {error && (
+          <div className="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+            Failed to load statement: {error}
+          </div>
+        )}
+
+        {isLoading ? (
+          <div className="rounded-xl border p-12 text-center text-sm text-muted-foreground">
+            Loading statement…
+          </div>
+        ) : (
+          <StatementOutput data={data} />
+        )}
       </div>
     );
   },
 );
 
 function StatementOutput({ data }: { data: StatementData }) {
+  const b = data.business;
+
   return (
     <div className="space-y-6">
       <Section title="Business Summary">
         <Grid
           items={[
-            { label: "Opening Balance", value: data.openingBalance },
-            { label: "Total Sales", value: data.totalSales, tone: "info" },
-            { label: "Total Purchase", value: data.totalPurchase },
+            { label: "Opening Balance", value: b.openingBalance },
+            { label: "Total Sales", value: b.totalSales, tone: "info" },
+            { label: "Total Purchase", value: b.totalPurchase },
             {
               label: "Total Expenses",
-              value: data.totalExpenses,
+              value: b.totalExpenses,
               tone: "warning",
             },
             {
               label: "Total Collection",
-              value: data.totalCollection,
+              value: b.totalCollection,
               tone: "success",
             },
-            { label: "Total Due", value: data.totalDue, tone: "destructive" },
-            { label: "Gross Profit", value: data.grossProfit, tone: "success" },
+            { label: "Total Due", value: b.totalDue, tone: "destructive" },
+            { label: "Gross Profit", value: b.grossProfit, tone: "success" },
             {
               label: "Net Profit",
-              value: data.netProfit,
-              tone: data.netProfit >= 0 ? "success" : "destructive",
+              value: b.netProfit,
+              tone: b.netProfit >= 0 ? "success" : "destructive",
             },
             {
               label: "Closing Balance",
-              value: data.closingBalance,
+              value: b.closingBalance,
               tone: "success",
             },
           ]}
@@ -365,11 +376,11 @@ function StatementOutput({ data }: { data: StatementData }) {
       <Section title="Sales Summary">
         <Grid
           items={[
-            { label: "Number of Sales", value: data.salesCount, raw: true },
-            { label: "Total Sales Amount", value: data.totalSales },
-            { label: "Paid", value: data.salesPaid, tone: "success" },
-            { label: "Due", value: data.salesDue, tone: "destructive" },
-            { label: "Sales Return", value: 0 },
+            { label: "Number of Sales", value: data.sales.count, raw: true },
+            { label: "Total Sales Amount", value: data.sales.amount },
+            { label: "Paid", value: data.sales.paid, tone: "success" },
+            { label: "Due", value: data.sales.due, tone: "destructive" },
+            { label: "Sales Return", value: data.sales.returned },
           ]}
         />
       </Section>
@@ -379,13 +390,17 @@ function StatementOutput({ data }: { data: StatementData }) {
           items={[
             {
               label: "Number of Purchases",
-              value: data.purchaseCount,
+              value: data.purchases.count,
               raw: true,
             },
-            { label: "Total Purchase Cost", value: data.totalPurchase },
-            { label: "Paid", value: data.purchasePaid, tone: "success" },
-            { label: "Due", value: data.purchaseDue, tone: "destructive" },
-            { label: "Purchase Return", value: 0 },
+            { label: "Total Purchase Cost", value: data.purchases.cost },
+            { label: "Paid", value: data.purchases.paid, tone: "success" },
+            {
+              label: "Due",
+              value: data.purchases.due,
+              tone: "destructive",
+            },
+            { label: "Purchase Return", value: data.purchases.returned },
           ]}
         />
       </Section>
@@ -396,7 +411,7 @@ function StatementOutput({ data }: { data: StatementData }) {
             items={[
               {
                 label: "Total Expenses",
-                value: data.totalExpenses,
+                value: data.expenses.total,
                 tone: "destructive",
               },
             ]}
@@ -406,12 +421,12 @@ function StatementOutput({ data }: { data: StatementData }) {
               <CardTitle className="text-sm">Breakdown by Category</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 pt-1">
-              {data.expensesByCategory.length === 0 ? (
+              {data.expenses.byCategory.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
                   No expenses in this period.
                 </p>
               ) : (
-                data.expensesByCategory.map((e) => (
+                data.expenses.byCategory.map((e) => (
                   <div
                     key={e.category}
                     className="flex items-center justify-between text-sm"
@@ -433,29 +448,31 @@ function StatementOutput({ data }: { data: StatementData }) {
       <Section title="Profit Summary">
         <Card className="shadow-sm">
           <CardContent className="space-y-3 p-5 text-sm">
-            <Row label="Revenue" value={data.totalSales} />
-            <Row label="Cost of Goods Sold (COGS)" value={-data.cogs} />
+            <Row label="Revenue" value={data.profit.revenue} />
+            <Row label="Cost of Goods Sold (COGS)" value={-data.profit.cogs} />
             <div className="flex items-center justify-between border-t pt-3 text-base font-semibold">
               <span>Gross Profit</span>
               <span className="tabular-nums text-success">
-                {formatCurrency(data.grossProfit)}
+                {formatCurrency(data.profit.grossProfit)}
               </span>
             </div>
-            <Row label="Business Expenses" value={-data.totalExpenses} />
+            <Row label="Business Expenses" value={-data.profit.expenses} />
             <div className="flex items-center justify-between border-t pt-3 text-base font-semibold">
               <span>Net Profit</span>
               <span
                 className={`tabular-nums ${
-                  data.netProfit >= 0 ? "text-success" : "text-destructive"
+                  data.profit.netProfit >= 0
+                    ? "text-success"
+                    : "text-destructive"
                 }`}
               >
-                {formatCurrency(data.netProfit)}
+                {formatCurrency(data.profit.netProfit)}
               </span>
             </div>
             <div className="flex items-center justify-between border-t pt-3">
               <span className="text-muted-foreground">Profit Margin</span>
-              <span className="font-semibold">
-                {data.profitMargin.toFixed(1)}%
+              <span className="font-semibold tabular-nums">
+                {data.profit.margin.toFixed(1)}%
               </span>
             </div>
           </CardContent>
@@ -465,12 +482,18 @@ function StatementOutput({ data }: { data: StatementData }) {
       <Section title="Stock Summary">
         <Grid
           items={[
-            { label: "Opening Stock Value", value: data.openingStockValue },
-            { label: "Purchased Stock Value", value: data.purchasedStockValue },
-            { label: "Sold Stock Value", value: data.soldStockValue },
+            {
+              label: "Opening Stock Value",
+              value: data.stock.openingValue,
+            },
+            {
+              label: "Purchased Stock Value",
+              value: data.stock.purchasedValue,
+            },
+            { label: "Sold Stock Value", value: data.stock.soldValue },
             {
               label: "Current Stock Value",
-              value: data.currentStockValue,
+              value: data.stock.currentValue,
               tone: "success",
             },
           ]}
@@ -480,14 +503,22 @@ function StatementOutput({ data }: { data: StatementData }) {
       <Section title="Due Summary">
         <Grid
           items={[
-            { label: "Opening Due", value: data.openingDue },
-            { label: "New Due", value: data.newDue, tone: "destructive" },
+            { label: "Opening Due", value: data.due.opening },
+            {
+              label: "New Due",
+              value: data.due.newDue,
+              tone: "destructive",
+            },
             {
               label: "Due Collected",
-              value: data.dueCollected,
+              value: data.due.collected,
               tone: "success",
             },
-            { label: "Closing Due", value: data.closingDue, tone: "warning" },
+            {
+              label: "Closing Due",
+              value: data.due.closing,
+              tone: "warning",
+            },
           ]}
         />
       </Section>
@@ -560,60 +591,56 @@ function Row({ label, value }: { label: string; value: number }) {
   );
 }
 
-/* ---------------------------- print HTML ---------------------------- */
+function openPrintWindow(data: StatementData) {
+  const w = window.open("", "_blank", "width=1100,height=850");
+  if (!w) return;
 
-function buildStatementHTML(data: StatementData) {
   const today = new Date().toLocaleDateString("en-GB", {
     day: "2-digit",
     month: "long",
     year: "numeric",
   });
+
   const fmt = (n: number) =>
     `৳ ${Math.abs(n).toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
-  const row = (label: string, value: string) => `
-    <tr>
-      <td>${escapeHtml(label)}</td>
-      <td class="num">${escapeHtml(value)}</td>
-    </tr>`;
+  const row = (label: string, value: string) =>
+    `<tr><td>${esc(label)}</td><td class="num">${esc(value)}</td></tr>`;
 
-  const block = (title: string, rows: string) => `
-    <h2>${escapeHtml(title)}</h2>
-    <table><tbody>${rows}</tbody></table>`;
+  const block = (title: string, rows: string) =>
+    `<h2>${esc(title)}</h2><table><tbody>${rows}</tbody></table>`;
 
-  return `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8" />
-<title>Statement — ${escapeHtml(businessSettings.businessName)}</title>
+  const rangeLabel = `${formatDate(data.range.from)} → ${formatDate(
+    data.range.to,
+  )}`;
+
+  const html = `<!doctype html>
+<html><head><meta charset="utf-8" /><title>Statement — ${esc(
+    businessSettings.businessName,
+  )}</title>
 <style>
   * { box-sizing: border-box; }
-  body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
-    color: #000; background: #fff;
-    margin: 0 auto; padding: 16mm;
-    width: 210mm; min-height: 297mm; font-size: 12px;
-  }
-  h1 { font-size: 20px; margin: 0 0 4px; }
-  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 0.06em;
-       border-bottom: 1px solid #000; padding-bottom: 4px; margin: 22px 0 8px; }
-  .meta { font-size: 11px; color: #444; margin-bottom: 4px; }
-  .header { border-bottom: 2px solid #000; padding-bottom: 12px; }
-  table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-  th, td { border: 1px solid #000; padding: 6px 10px; font-size: 11px; }
-  td.num { text-align: right; font-variant-numeric: tabular-nums; }
-  .footer { margin-top: 24px; border-top: 1px solid #999; padding-top: 10px;
-            font-size: 10px; color: #555; text-align: center; }
-  @media print { body { padding: 12mm; } @page { margin: 12mm; size: A4 portrait; } }
-</style>
-</head>
-<body>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color:#000; background:#fff; margin:0 auto; padding:16mm;
+    width:210mm; min-height:297mm; font-size:12px; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  h2 { font-size:13px; text-transform:uppercase; letter-spacing:0.06em;
+       border-bottom:1px solid #000; padding-bottom:4px; margin:22px 0 8px; }
+  .meta { font-size:11px; color:#444; margin-bottom:4px; }
+  .header { border-bottom:2px solid #000; padding-bottom:12px; }
+  table { width:100%; border-collapse:collapse; margin-top:4px; }
+  th, td { border:1px solid #000; padding:6px 10px; font-size:11px; }
+  td.num { text-align:right; font-variant-numeric:tabular-nums; }
+  .footer { margin-top:24px; border-top:1px solid #999; padding-top:10px;
+            font-size:10px; color:#555; text-align:center; }
+  @media print { body { padding:12mm; } @page { margin:12mm; size:A4 portrait; } }
+</style></head><body>
   <div class="header">
-    <h1>${escapeHtml(businessSettings.businessName)}</h1>
-    <div class="meta">${escapeHtml(businessSettings.address)}</div>
-    <div class="meta">${escapeHtml(businessSettings.phone)}</div>
+    <h1>${esc(businessSettings.businessName)}</h1>
+    <div class="meta">${esc(businessSettings.address)}</div>
+    <div class="meta">${esc(businessSettings.phone)}</div>
     <div class="meta" style="margin-top:6px">
-      <strong>Business Statement</strong> · ${escapeHtml(data.rangeLabel)}
+      <strong>Business Statement</strong> · ${esc(rangeLabel)}
     </div>
     <div class="meta">Generated on ${today}</div>
   </div>
@@ -621,45 +648,45 @@ function buildStatementHTML(data: StatementData) {
   ${block(
     "Business Summary",
     [
-      row("Opening Balance", fmt(data.openingBalance)),
-      row("Total Sales", fmt(data.totalSales)),
-      row("Total Purchase", fmt(data.totalPurchase)),
-      row("Total Expenses", fmt(data.totalExpenses)),
-      row("Total Collection", fmt(data.totalCollection)),
-      row("Total Due", fmt(data.totalDue)),
-      row("Gross Profit", fmt(data.grossProfit)),
-      row("Net Profit", fmt(data.netProfit)),
-      row("Closing Balance", fmt(data.closingBalance)),
+      row("Opening Balance", fmt(data.business.openingBalance)),
+      row("Total Sales", fmt(data.business.totalSales)),
+      row("Total Purchase", fmt(data.business.totalPurchase)),
+      row("Total Expenses", fmt(data.business.totalExpenses)),
+      row("Total Collection", fmt(data.business.totalCollection)),
+      row("Total Due", fmt(data.business.totalDue)),
+      row("Gross Profit", fmt(data.business.grossProfit)),
+      row("Net Profit", fmt(data.business.netProfit)),
+      row("Closing Balance", fmt(data.business.closingBalance)),
     ].join(""),
   )}
 
   ${block(
     "Sales Summary",
     [
-      row("Number of Sales", String(data.salesCount)),
-      row("Total Sales Amount", fmt(data.totalSales)),
-      row("Paid", fmt(data.salesPaid)),
-      row("Due", fmt(data.salesDue)),
-      row("Sales Return", fmt(0)),
+      row("Number of Sales", String(data.sales.count)),
+      row("Total Sales Amount", fmt(data.sales.amount)),
+      row("Paid", fmt(data.sales.paid)),
+      row("Due", fmt(data.sales.due)),
+      row("Sales Return", fmt(data.sales.returned)),
     ].join(""),
   )}
 
   ${block(
     "Purchase Summary",
     [
-      row("Number of Purchases", String(data.purchaseCount)),
-      row("Total Purchase Cost", fmt(data.totalPurchase)),
-      row("Paid", fmt(data.purchasePaid)),
-      row("Due", fmt(data.purchaseDue)),
-      row("Purchase Return", fmt(0)),
+      row("Number of Purchases", String(data.purchases.count)),
+      row("Total Purchase Cost", fmt(data.purchases.cost)),
+      row("Paid", fmt(data.purchases.paid)),
+      row("Due", fmt(data.purchases.due)),
+      row("Purchase Return", fmt(data.purchases.returned)),
     ].join(""),
   )}
 
   ${block(
     "Expense Summary",
     [
-      row("Total Expenses", fmt(data.totalExpenses)),
-      ...data.expensesByCategory.map((e) =>
+      row("Total Expenses", fmt(data.expenses.total)),
+      ...data.expenses.byCategory.map((e) =>
         row(
           e.category.charAt(0).toUpperCase() + e.category.slice(1),
           fmt(e.amount),
@@ -671,46 +698,49 @@ function buildStatementHTML(data: StatementData) {
   ${block(
     "Profit Summary",
     [
-      row("Revenue", fmt(data.totalSales)),
-      row("COGS", fmt(data.cogs)),
-      row("Gross Profit", fmt(data.grossProfit)),
-      row("Business Expenses", fmt(data.totalExpenses)),
-      row("Net Profit", fmt(data.netProfit)),
-      row("Profit Margin", `${data.profitMargin.toFixed(1)}%`),
+      row("Revenue", fmt(data.profit.revenue)),
+      row("COGS", fmt(data.profit.cogs)),
+      row("Gross Profit", fmt(data.profit.grossProfit)),
+      row("Business Expenses", fmt(data.profit.expenses)),
+      row("Net Profit", fmt(data.profit.netProfit)),
+      row("Profit Margin", `${data.profit.margin.toFixed(1)}%`),
     ].join(""),
   )}
 
   ${block(
     "Stock Summary",
     [
-      row("Opening Stock Value", fmt(data.openingStockValue)),
-      row("Purchased Stock Value", fmt(data.purchasedStockValue)),
-      row("Sold Stock Value", fmt(data.soldStockValue)),
-      row("Current Stock Value", fmt(data.currentStockValue)),
+      row("Opening Stock Value", fmt(data.stock.openingValue)),
+      row("Purchased Stock Value", fmt(data.stock.purchasedValue)),
+      row("Sold Stock Value", fmt(data.stock.soldValue)),
+      row("Current Stock Value", fmt(data.stock.currentValue)),
     ].join(""),
   )}
 
   ${block(
     "Due Summary",
     [
-      row("Opening Due", fmt(data.openingDue)),
-      row("New Due", fmt(data.newDue)),
-      row("Due Collected", fmt(data.dueCollected)),
-      row("Closing Due", fmt(data.closingDue)),
+      row("Opening Due", fmt(data.due.opening)),
+      row("New Due", fmt(data.due.newDue)),
+      row("Due Collected", fmt(data.due.collected)),
+      row("Closing Due", fmt(data.due.closing)),
     ].join(""),
   )}
 
-  <div class="footer">${escapeHtml(businessSettings.invoiceFooter)}</div>
+  <div class="footer">${esc(businessSettings.invoiceFooter)}</div>
   <script>window.onload = function(){ window.print(); };</script>
-</body>
-</html>`;
+</body></html>`;
+
+  w.document.write(html);
+  w.document.close();
 }
 
-function escapeHtml(str: string): string {
-  return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
+function esc(s: string): string {
+  const map: Record<string, string> = {
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+  };
+  return String(s).replace(/[&<>"]/g, (c) => map[c] ?? c);
 }

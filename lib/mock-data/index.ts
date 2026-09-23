@@ -10,11 +10,11 @@ import type {
 } from "@/lib/types";
 
 export const categories: Category[] = [
-  { id: "c1", name: "Grocery", color: "#16a34a" },
-  { id: "c2", name: "Electronics", color: "#2563eb" },
-  { id: "c3", name: "Agriculture", color: "#ca8a04" },
-  { id: "c4", name: "Household", color: "#7c3aed" },
-  { id: "c5", name: "Others", color: "#64748b" },
+  { id: "c1", name: "Grocery", color: "var(--color-chart-1)" },
+  { id: "c2", name: "Electronics", color: "var(--color-chart-2)" },
+  { id: "c3", name: "Agriculture", color: "var(--color-chart-3)" },
+  { id: "c4", name: "Household", color: "var(--color-chart-4)" },
+  { id: "c5", name: "Others", color: "var(--color-chart-5)" },
 ];
 
 export const suppliers: Supplier[] = [
@@ -538,11 +538,11 @@ export const salesPurchaseChart: Record<
 };
 
 export const categorySales = [
-  { name: "Grocery", value: 98500, color: "#16a34a" },
-  { name: "Electronics", value: 62400, color: "#2563eb" },
-  { name: "Agriculture", value: 42800, color: "#ca8a04" },
-  { name: "Household", value: 28600, color: "#7c3aed" },
-  { name: "Others", value: 13550, color: "#64748b" },
+  { name: "Grocery", value: 98500, color: "var(--color-chart-1)" },
+  { name: "Electronics", value: 62400, color: "var(--color-chart-2)" },
+  { name: "Agriculture", value: 42800, color: "var(--color-chart-3)" },
+  { name: "Household", value: 28600, color: "var(--color-chart-4)" },
+  { name: "Others", value: 13550, color: "var(--color-chart-5)" },
 ];
 
 export const monthlyProfitData = [

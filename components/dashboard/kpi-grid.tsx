@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Receipt,
   ShoppingCart,
@@ -6,64 +8,86 @@ import {
   CreditCard,
   Wallet,
 } from "lucide-react";
+
 import { StatCard } from "@/components/shared/stat-card";
 import { formatCurrency } from "@/lib/format";
 
-export function KpiGrid() {
-  const data = [
+interface Summary {
+  totalSales: number;
+  totalPurchase: number;
+  totalProfit: number;
+  stockValue: number;
+  totalDue: number;
+  cashBalance: number;
+  totalSalesChange: number;
+  totalProfitChange: number;
+}
+
+interface Props {
+  summary: Summary | null;
+  loading?: boolean;
+}
+
+export function KpiGrid({ summary, loading }: Props) {
+  const s = summary ?? {
+    totalSales: 0,
+    totalPurchase: 0,
+    totalProfit: 0,
+    stockValue: 0,
+    totalDue: 0,
+    cashBalance: 0,
+    totalSalesChange: 0,
+    totalProfitChange: 0,
+  };
+
+  const value = (n: number) => (loading ? "…" : formatCurrency(n));
+
+  const items = [
     {
       label: "Total Sales",
-      value: formatCurrency(245850),
+      value: value(s.totalSales),
       icon: Receipt,
       tone: "success" as const,
-      change: 12.4,
-      changeLabel: "from last month",
+      change: s.totalSalesChange,
+      changeLabel: "vs previous 30 days",
     },
     {
       label: "Total Purchase",
-      value: formatCurrency(162000),
+      value: value(s.totalPurchase),
       icon: ShoppingCart,
       tone: "info" as const,
-      change: -4.2,
-      changeLabel: "from last month",
     },
     {
       label: "Total Profit",
-      value: formatCurrency(68420),
+      value: value(s.totalProfit),
       icon: TrendingUp,
       tone: "primary" as const,
-      change: 8.7,
-      changeLabel: "from last month",
+      change: s.totalProfitChange,
+      changeLabel: "vs previous 30 days",
     },
     {
       label: "Stock Value",
-      value: formatCurrency(428500),
+      value: value(s.stockValue),
       icon: Package,
       tone: "neutral" as const,
-      change: 3.1,
-      changeLabel: "from last month",
     },
     {
       label: "Total Due",
-      value: formatCurrency(15200),
+      value: value(s.totalDue),
       icon: CreditCard,
       tone: "warning" as const,
-      change: 6.2,
-      changeLabel: "from last month",
     },
     {
       label: "Cash Balance",
-      value: formatCurrency(183450),
+      value: value(s.cashBalance),
       icon: Wallet,
       tone: "success" as const,
-      change: 9.4,
-      changeLabel: "from last month",
     },
   ];
 
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-      {data.map((d) => (
+      {items.map((d) => (
         <StatCard key={d.label} {...d} />
       ))}
     </div>

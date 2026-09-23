@@ -2,19 +2,17 @@
 
 import * as React from "react";
 import { Plus, Printer } from "lucide-react";
+import { toast } from "sonner";
 
 import { AppShell } from "@/components/layout/app-shell";
 import { PageHeader } from "@/components/shared/page-header";
 import { PurchaseTable } from "@/components/purchases/purchase-table";
 import { AddPurchaseForm } from "@/components/purchases/add-purchase-form";
 import { Button } from "@/components/ui/button";
-import {
-  suppliers as initialSuppliers,
-  products as initialProducts,
-  businessSettings,
-} from "@/lib/mock-data";
+import { endpoints } from "@/lib/endpoints";
+import { businessSettings } from "@/lib/mock-data";
 import type { Supplier, Product } from "@/lib/types";
-import { formatCurrency } from "@/lib/format";
+import { useApi } from "@/hooks/use-api";
 
 export interface PurchaseLine {
   id: string;
@@ -42,90 +40,23 @@ export interface Purchase {
   status: "paid" | "partial" | "due";
 }
 
-const seed: Purchase[] = [
-  {
-    id: "pur1",
-    purchaseNumber: "PUR-2024-0042",
-    supplierId: "s1",
-    supplierName: "Rahman Traders",
-    agentName: "Md. Karim",
-    agentPhone: "+8801711100001",
-    date: "2024-06-17",
-    items: [
-      {
-        id: "l1",
-        productName: "Rice 25kg",
-        quantity: 50,
-        unit: "bag",
-        unitPrice: 1650,
-      },
-      {
-        id: "l2",
-        productName: "Soybean Oil 5L",
-        quantity: 30,
-        unit: "bottle",
-        unitPrice: 780,
-      },
-    ],
-    subtotal: 105900,
-    discount: 900,
-    additionalCost: 0,
-    total: 105000,
-    paid: 80000,
-    due: 25000,
-    status: "partial",
-  },
-  {
-    id: "pur2",
-    purchaseNumber: "PUR-2024-0041",
-    supplierId: "s3",
-    supplierName: "Chittagong Suppliers",
-    agentName: "Rakib Hossain",
-    agentPhone: "+8801711100003",
-    date: "2024-06-15",
-    items: [
-      {
-        id: "l1",
-        productName: "LED Bulb 12W",
-        quantity: 200,
-        unit: "pcs",
-        unitPrice: 145,
-      },
-    ],
-    subtotal: 29000,
-    discount: 0,
-    additionalCost: 500,
-    total: 29500,
-    paid: 29500,
-    due: 0,
-    status: "paid",
-  },
-];
-
 export default function PurchasesPage() {
   const [open, setOpen] = React.useState(false);
   const [editTarget, setEditTarget] = React.useState<Purchase | null>(null);
-  const [purchases, setPurchases] = React.useState<Purchase[]>(seed);
-  const [suppliers, setSuppliers] =
-    React.useState<Supplier[]>(initialSuppliers);
-  const [products] = React.useState<Product[]>(initialProducts);
 
-  const handleAdd = (purchase: Purchase, newSupplier?: Supplier) => {
-    setPurchases((prev) => [purchase, ...prev]);
-    if (newSupplier) {
-      setSuppliers((prev) => [newSupplier, ...prev]);
-    }
-  };
+  const {
+    data: purchasesData,
+    loading,
+    error,
+    refetch,
+  } = useApi<Purchase[]>("/api/purchases");
+  const { data: suppliersData, refetch: refetchSuppliers } =
+    useApi<Supplier[]>("/api/suppliers");
+  const { data: productsData } = useApi<Product[]>("/api/products");
 
-  const handleUpdate = (purchase: Purchase) => {
-    setPurchases((prev) =>
-      prev.map((p) => (p.id === purchase.id ? purchase : p)),
-    );
-  };
-
-  const handleDelete = (id: string) => {
-    setPurchases((prev) => prev.filter((p) => p.id !== id));
-  };
+  const purchases = purchasesData ?? [];
+  const suppliers = suppliersData ?? [];
+  const products = productsData ?? [];
 
   const openCreate = () => {
     setEditTarget(null);
@@ -135,6 +66,44 @@ export default function PurchasesPage() {
   const openEdit = (purchase: Purchase) => {
     setEditTarget(purchase);
     setOpen(true);
+  };
+
+  const handleAdd = async (purchase: Purchase, newSupplier?: Supplier) => {
+    try {
+      if (newSupplier) {
+        await endpoints.suppliers.create(newSupplier);
+        refetchSuppliers();
+      }
+      await endpoints.purchases.create(purchase);
+      toast.success("Purchase saved", {
+        description: purchase.purchaseNumber,
+      });
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const handleUpdate = async (purchase: Purchase) => {
+    try {
+      await endpoints.purchases.update(purchase.id, purchase);
+      toast.success("Purchase updated", {
+        description: purchase.purchaseNumber,
+      });
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await endpoints.purchases.remove(id);
+      toast.success("Purchase deleted");
+      refetch();
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
   };
 
   const handlePrint = () => {
@@ -155,20 +124,20 @@ export default function PurchasesPage() {
         <td>${esc(p.purchaseNumber)}</td>
         <td>${esc(p.supplierName)}</td>
         <td>${esc(p.agentName ?? "—")}</td>
-        <td>${p.date}</td>
-        <td class="num">${formatCurrency(p.total)}</td>
-        <td class="num">${formatCurrency(p.paid)}</td>
-        <td class="num">${formatCurrency(p.due)}</td>
-        <td class="capitalize">${esc(p.status)}</td>
+        <td>${esc(p.date)}</td>
+        <td class="num">${fmt(p.total)}</td>
+        <td class="num">${fmt(p.paid)}</td>
+        <td class="num">${fmt(p.due)}</td>
+        <td class="cap">${esc(p.status)}</td>
       </tr>`,
       )
       .join("");
 
     const totals = purchases.reduce(
       (a, p) => ({
-        total: a.total + p.total,
-        paid: a.paid + p.paid,
-        due: a.due + p.due,
+        total: a.total + (p.total || 0),
+        paid: a.paid + (p.paid || 0),
+        due: a.due + (p.due || 0),
       }),
       { total: 0, paid: 0, due: 0 },
     );
@@ -177,7 +146,12 @@ export default function PurchasesPage() {
 <html><head><meta charset="utf-8" /><title>Purchase Report</title>
 <style>
   * { box-sizing: border-box; }
-  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif; color:#000; background:#fff; margin:0 auto; padding:16mm; width:210mm; min-height:297mm; font-size:12px; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+    color:#000; background:#fff;
+    margin:0 auto; padding:16mm;
+    width:210mm; min-height:297mm; font-size:12px;
+  }
   h1 { font-size:20px; margin:0 0 4px; }
   .header { border-bottom:2px solid #000; padding-bottom:12px; margin-bottom:8px; }
   .meta { font-size:11px; color:#444; }
@@ -187,6 +161,7 @@ export default function PurchasesPage() {
   th { text-transform:uppercase; font-size:10px; font-weight:600; }
   td.num,th.num { text-align:right; font-variant-numeric:tabular-nums; }
   td.ctr,th.ctr { text-align:center; }
+  td.cap { text-transform: capitalize; }
   tfoot td { font-weight:700; background:#f5f5f5; }
   .footer { margin-top:24px; border-top:1px solid #999; padding-top:10px; font-size:10px; color:#555; text-align:center; }
   @media print { body { padding:12mm; } @page { margin:12mm; size:A4 portrait; } }
@@ -214,9 +189,9 @@ export default function PurchasesPage() {
     <tbody>${rows}</tbody>
     <tfoot><tr>
       <td colspan="5">Total</td>
-      <td class="num">${formatCurrency(totals.total)}</td>
-      <td class="num">${formatCurrency(totals.paid)}</td>
-      <td class="num">${formatCurrency(totals.due)}</td>
+      <td class="num">${fmt(totals.total)}</td>
+      <td class="num">${fmt(totals.paid)}</td>
+      <td class="num">${fmt(totals.due)}</td>
       <td></td>
     </tr></tfoot>
   </table>
@@ -247,11 +222,23 @@ export default function PurchasesPage() {
         </Button>
       </PageHeader>
 
-      <PurchaseTable
-        purchases={purchases}
-        onDelete={handleDelete}
-        onEdit={openEdit}
-      />
+      {error && (
+        <div className="mb-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive">
+          Failed to load purchases: {error}
+        </div>
+      )}
+
+      {loading ? (
+        <div className="rounded-xl border p-8 text-center text-sm text-muted-foreground">
+          Loading purchases…
+        </div>
+      ) : (
+        <PurchaseTable
+          purchases={purchases}
+          onDelete={handleDelete}
+          onEdit={openEdit}
+        />
+      )}
 
       <AddPurchaseForm
         key={`${open}-${editTarget?.id ?? "new"}`}
@@ -278,4 +265,8 @@ function esc(s: string): string {
     '"': "&quot;",
   };
   return String(s).replace(/[&<>"]/g, (c) => map[c] ?? c);
+}
+
+function fmt(n: number): string {
+  return `৳ ${(n ?? 0).toLocaleString("en-IN")}`;
 }

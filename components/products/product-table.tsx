@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { MoreHorizontal, Eye, Pencil, Trash2, Package } from "lucide-react";
+import { MoreHorizontal, Pencil, Trash2, Package } from "lucide-react";
 import { toast } from "sonner";
 
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,36 +18,40 @@ import { FilterDropdown } from "@/components/shared/filter-dropdown";
 import { DataTable, type Column } from "@/components/shared/data-table";
 import { StatusBadge } from "@/components/shared/status-badge";
 import { ConfirmDialog } from "@/components/shared/confirm-dialog";
-import { categories, suppliers } from "@/lib/mock-data";
-import type { Product } from "@/lib/types";
+import { colorName } from "@/lib/color";
 import { formatCurrency } from "@/lib/format";
+import type { Product, Category, Supplier } from "@/lib/types";
 
 interface Props {
   items: Product[];
+  categories: Category[];
+  suppliers: Supplier[];
   onDelete: (id: string) => void;
+  onEdit: (product: Product) => void;
 }
 
-export function ProductTable({ items, onDelete }: Props) {
+export function ProductTable({
+  items,
+  categories,
+  suppliers,
+  onDelete,
+  onEdit,
+}: Props) {
   const [search, setSearch] = React.useState("");
   const [category, setCategory] = React.useState<string>("all");
   const [stockFilter, setStockFilter] = React.useState<string>("all");
   const [supplierFilter, setSupplierFilter] = React.useState<string>("all");
   const [deleteTarget, setDeleteTarget] = React.useState<Product | null>(null);
 
-  const filtered = React.useMemo(() => {
-    return items.filter((p) => {
-      if (
-        search &&
-        !`${p.name} ${p.sku}`.toLowerCase().includes(search.toLowerCase())
-      )
-        return false;
-      if (category !== "all" && p.categoryId !== category) return false;
-      if (stockFilter !== "all" && p.status !== stockFilter) return false;
-      if (supplierFilter !== "all" && p.supplierId !== supplierFilter)
-        return false;
-      return true;
-    });
-  }, [items, search, category, stockFilter, supplierFilter]);
+  const filtered = items.filter((p) => {
+    const q = search.trim().toLowerCase();
+    if (q && !`${p.name} ${p.sku}`.toLowerCase().includes(q)) return false;
+    if (category !== "all" && p.categoryId !== category) return false;
+    if (stockFilter !== "all" && p.status !== stockFilter) return false;
+    if (supplierFilter !== "all" && p.supplierId !== supplierFilter)
+      return false;
+    return true;
+  });
 
   const columns: Column<Product>[] = [
     {
@@ -74,7 +78,8 @@ export function ProductTable({ items, onDelete }: Props) {
           <span className="inline-flex items-center gap-1.5 text-xs">
             <span
               className="h-2 w-2 rounded-full"
-              style={{ background: c?.color }}
+              style={{ background: c?.color ?? "#e5e7eb" }}
+              title={colorName(c?.color)}
             />
             {c?.name ?? "—"}
           </span>
@@ -148,7 +153,7 @@ export function ProductTable({ items, onDelete }: Props) {
     },
     {
       key: "actions",
-      header: "",
+      header: "Actions",
       align: "right",
       cell: (p) => (
         <DropdownMenu>
@@ -160,10 +165,7 @@ export function ProductTable({ items, onDelete }: Props) {
             }
           />
           <DropdownMenuContent align="end">
-            <DropdownMenuItem>
-              <Eye className="mr-2 h-4 w-4" /> View
-            </DropdownMenuItem>
-            <DropdownMenuItem>
+            <DropdownMenuItem onClick={() => onEdit(p)}>
               <Pencil className="mr-2 h-4 w-4" /> Edit
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -180,61 +182,67 @@ export function ProductTable({ items, onDelete }: Props) {
   ];
 
   return (
-    <Card className="shadow-sm">
-      <CardContent className="p-4 sm:p-5">
-        <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SearchInput
-            value={search}
-            onChange={setSearch}
-            placeholder="Search products…"
-          />
-          <div className="flex flex-wrap items-center gap-2">
-            <FilterDropdown
-              label="Category"
-              value={category}
-              onChange={setCategory}
-              options={[
-                { label: "All Categories", value: "all" },
-                ...categories.map((c) => ({ label: c.name, value: c.id })),
-              ]}
+    <>
+      <Card className="shadow-sm">
+        <CardContent className="p-4 sm:p-5">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Search products…"
             />
-            <FilterDropdown
-              label="Stock"
-              value={stockFilter}
-              onChange={setStockFilter}
-              options={[
-                { label: "All", value: "all" },
-                { label: "In Stock", value: "in-stock" },
-                { label: "Low Stock", value: "low-stock" },
-                { label: "Out of Stock", value: "out-of-stock" },
-              ]}
-            />
-            <FilterDropdown
-              label="Supplier"
-              value={supplierFilter}
-              onChange={setSupplierFilter}
-              options={[
-                { label: "All Suppliers", value: "all" },
-                ...suppliers.map((s) => ({ label: s.name, value: s.id })),
-              ]}
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              <FilterDropdown
+                label="Category"
+                value={category}
+                onChange={setCategory}
+                options={[
+                  { label: "All Categories", value: "all" },
+                  ...categories.map((c) => ({ label: c.name, value: c.id })),
+                ]}
+              />
+              <FilterDropdown
+                label="Stock"
+                value={stockFilter}
+                onChange={setStockFilter}
+                options={[
+                  { label: "All", value: "all" },
+                  { label: "In Stock", value: "in-stock" },
+                  { label: "Low Stock", value: "low-stock" },
+                  { label: "Out of Stock", value: "out-of-stock" },
+                ]}
+              />
+              <FilterDropdown
+                label="Supplier"
+                value={supplierFilter}
+                onChange={setSupplierFilter}
+                options={[
+                  { label: "All Suppliers", value: "all" },
+                  ...suppliers.map((s) => ({ label: s.name, value: s.id })),
+                ]}
+              />
+            </div>
           </div>
-        </div>
 
-        <DataTable
-          columns={columns}
-          data={filtered}
-          keyExtractor={(p) => p.id}
-          emptyTitle="No products found"
-          emptyDescription="Try adjusting your filters or add a new product."
-        />
-      </CardContent>
+          <DataTable
+            columns={columns}
+            data={filtered}
+            keyExtractor={(p) => p.id}
+            emptyTitle="No products found"
+            emptyDescription="Try adjusting your filters or add a new product."
+          />
+        </CardContent>
+      </Card>
 
       <ConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(o) => !o && setDeleteTarget(null)}
         title="Delete this product?"
-        description={`${deleteTarget?.name} will be permanently removed from your catalog.`}
+        description={
+          deleteTarget
+            ? `${deleteTarget.name} will be permanently removed from your catalog.`
+            : ""
+        }
         confirmLabel="Delete product"
         onConfirm={() => {
           if (deleteTarget) {
@@ -246,6 +254,6 @@ export function ProductTable({ items, onDelete }: Props) {
           setDeleteTarget(null);
         }}
       />
-    </Card>
+    </>
   );
 }
