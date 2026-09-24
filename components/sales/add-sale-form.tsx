@@ -114,9 +114,7 @@ export function AddSaleForm({
   };
 
   const updateLine = (id: string, patch: Partial<CartLine>) => {
-    setLines((prev) =>
-      prev.map((l) => (l.id === id ? { ...l, ...patch } : l))
-    );
+    setLines((prev) => prev.map((l) => (l.id === id ? { ...l, ...patch } : l)));
   };
 
   const removeLine = (id: string) => {
@@ -212,8 +210,7 @@ export function AddSaleForm({
         purchasePrice: p.purchasePrice,
         discount: l.discount,
         subtotal: lineSubtotal(l),
-        profit:
-          (l.sellingPrice - p.purchasePrice) * l.quantity - l.discount,
+        profit: (l.sellingPrice - p.purchasePrice) * l.quantity - l.discount,
       };
     });
 
@@ -223,7 +220,7 @@ export function AddSaleForm({
     const invoiceNumber =
       editTarget?.invoiceNumber ??
       `INV-${new Date().getFullYear().toString().slice(2)}-${String(
-        Date.now()
+        Date.now(),
       ).slice(-5)}`;
 
     const sale: Sale = {
@@ -289,7 +286,7 @@ export function AddSaleForm({
     const today = new Date(todayISO());
     const target = new Date(dueDate);
     const diffDays = Math.round(
-      (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      (target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24),
     );
     if (diffDays < 0)
       return {
@@ -526,9 +523,7 @@ export function AddSaleForm({
 
             <div className="flex items-center justify-between border-t pt-4 text-lg font-semibold">
               <span>Grand Total</span>
-              <span className="tabular-nums">
-                {formatCurrency(grandTotal)}
-              </span>
+              <span className="tabular-nums">{formatCurrency(grandTotal)}</span>
             </div>
 
             <div className="flex items-center justify-between gap-3">
@@ -544,8 +539,8 @@ export function AddSaleForm({
                   setPaid(
                     Math.max(
                       0,
-                      Math.min(grandTotal, Number(e.target.value) || 0)
-                    )
+                      Math.min(grandTotal, Number(e.target.value) || 0),
+                    ),
                   )
                 }
               />
@@ -588,7 +583,7 @@ export function AddSaleForm({
                           "h-9 rounded-md border text-xs font-medium transition-colors",
                           active
                             ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground"
+                            : "border-border bg-background text-muted-foreground hover:bg-accent hover:text-foreground",
                         )}
                       >
                         {p.label}
@@ -617,7 +612,7 @@ export function AddSaleForm({
                       dueLabel.tone === "danger" && "text-destructive",
                       dueLabel.tone === "warning" &&
                         "text-[color-mix(in_oklab,var(--color-warning)_70%,black)]",
-                      dueLabel.tone === "info" && "text-info"
+                      dueLabel.tone === "info" && "text-info",
                     )}
                   >
                     {dueLabel.text}
@@ -625,13 +620,6 @@ export function AddSaleForm({
                 )}
               </div>
             )}
-
-            <div className="mt-2 rounded-xl bg-muted/60 p-4 text-sm text-muted-foreground">
-              Estimated profit:{" "}
-              <span className="font-semibold text-success">
-                {formatCurrency(estimatedProfit)}
-              </span>
-            </div>
           </div>
         </aside>
       </div>

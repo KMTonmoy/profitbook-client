@@ -58,12 +58,7 @@ interface HeaderProps {
 }
 
 const quickActions = [
-  {
-    label: "Add Product",
-    href: "/products",
-    icon: Package,
-    shortcut: "⌘P",
-  },
+  { label: "Add Product", href: "/products", icon: Package, shortcut: "⌘P" },
   {
     label: "Record Purchase",
     href: "/purchases",
@@ -71,12 +66,7 @@ const quickActions = [
     shortcut: "⌘U",
   },
   { label: "Record Sale", href: "/sales", icon: Receipt, shortcut: "⌘S" },
-  {
-    label: "Add Customer",
-    href: "/customers",
-    icon: Users,
-    shortcut: "⌘C",
-  },
+  { label: "Add Customer", href: "/customers", icon: Users, shortcut: "⌘C" },
   { label: "Add Expense", href: "/expenses", icon: Wallet, shortcut: "⌘E" },
   {
     label: "Record Due Payment",
@@ -197,25 +187,18 @@ export function Header({ title, subtitle }: HeaderProps) {
     setQuery("");
   };
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
-      e.preventDefault();
-      openSearch();
-    }
-  };
-
   React.useEffect(() => {
-    window.addEventListener(
-      "keydown",
-      handleKeyDown as unknown as EventListener,
-    );
-    return () => {
-      window.removeEventListener(
-        "keydown",
-        handleKeyDown as unknown as EventListener,
-      );
+    const onKey = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setSearchOpen(true);
+        setQuery("");
+      }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    window.addEventListener("keydown", onKey);
+    return () => {
+      window.removeEventListener("keydown", onKey);
+    };
   }, []);
 
   const q = query.trim().toLowerCase();
@@ -350,7 +333,7 @@ export function Header({ title, subtitle }: HeaderProps) {
               render={
                 <Button size="sm" className="h-9 gap-1.5">
                   <Plus className="h-4 w-4" />
-                  <span className="hidden sm:inline"</span>
+                  <span className="hidden sm:inline">New</span>
                 </Button>
               }
             />

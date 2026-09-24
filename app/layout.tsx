@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Hind_Siliguri } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -35,23 +36,20 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (localStorage.getItem('profitbook.compact') === 'true') {
-                  document.documentElement.classList.add('compact');
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
-      </head>
       <body
         suppressHydrationWarning
         className={`${inter.variable} ${hindSiliguri.variable} font-sans min-h-screen bg-background text-foreground`}
       >
+        <Script id="compact-init" strategy="beforeInteractive">
+          {`
+            try {
+              if (localStorage.getItem('profitbook.compact') === 'true') {
+                document.documentElement.classList.add('compact');
+              }
+            } catch (e) {}
+          `}
+        </Script>
+
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
